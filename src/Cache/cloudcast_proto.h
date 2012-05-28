@@ -1,9 +1,6 @@
 #ifndef CLOUDCAST_PROTO
 #define CLOUDCAST_PROTO
 
-#include <time.h>
-#include "cloud_helper.h"
-
 struct cloudcast_proto_context;
 
 struct cloudcast_header {

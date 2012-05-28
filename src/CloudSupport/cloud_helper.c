@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 #include "cloud_helper.h"
+#include "net_helper.h"
 #include "cloud_helper_iface.h"
 
 #include "../Utils/fifo_queue.h"

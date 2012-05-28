@@ -1,9 +1,6 @@
 #ifndef CLOUD_HELPER_IFACE
 #define CLOUD_HELPER_IFACE
 
-#include <time.h>
-#include "net_helper.h"
-
 struct cloud_helper_impl_context;
 
 struct cloud_helper_iface {
