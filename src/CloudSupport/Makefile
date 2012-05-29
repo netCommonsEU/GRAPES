@@ -8,9 +8,9 @@ CFGDIR ?= ..
 UTILS_DIR = ../Utils
 
 OBJS = cloud_helper.o
-ifneq ($(ARCH),win32)
-  OBJS += cloud_helper_utils.o
-endif
+#ifneq ($(ARCH),win32)
+#  OBJS += cloud_helper_utils.o
+#endif
 DELEGATE_HELPERS = libs3_delegate_helper.so mysql_delegate_helper.so
 DELEGATE_HELPERS_DEPS = ../Utils/request_handler.o \
 			../Utils/fifo_queue.o \
