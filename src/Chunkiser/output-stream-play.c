@@ -17,15 +17,11 @@
 #include "int_coding.h"
 #include "payload.h"
 #include "config.h"
-#include "ffmpeg_compat.h"
+//#include "ffmpeg_compat.h"
 #include "dechunkiser_iface.h"
 
 #ifndef MAX_STREAMS
 #define MAX_STREAMS 20
-#endif
-#ifndef CODEC_TYPE_VIDEO
-#define CODEC_TYPE_VIDEO AVMEDIA_TYPE_VIDEO
-#define CODEC_TYPE_AUDIO AVMEDIA_TYPE_AUDIO
 #endif
 
 struct PacketQueue {
@@ -641,11 +637,13 @@ static AVFormatContext *format_gen(struct dechunkiser_ctx *o, const uint8_t *dat
     o->outctx = format_init(o);
     if (o->streams & 0x01) {
       AVCodec *vCodec;
+      AVStream *st;
 
-      av_new_stream(o->outctx, 0);
+      st = avformat_new_stream(o->outctx, NULL);
+      st->id = 0;
       c = o->outctx->streams[o->outctx->nb_streams - 1]->codec;
       c->codec_id = o->video_codec_id;
-      c->codec_type = CODEC_TYPE_VIDEO;
+      c->codec_type = AVMEDIA_TYPE_VIDEO;
       c->width = o->width;
       c->height= o->height;
       c->time_base.den = o->video_time_base.den;
@@ -660,7 +658,7 @@ static AVFormatContext *format_gen(struct dechunkiser_ctx *o, const uint8_t *dat
 
        return NULL;
       }
-      if(avcodec_open(o->outctx->streams[o->outctx->nb_streams - 1]->codec, vCodec)<0){
+      if(avcodec_open2(o->outctx->streams[o->outctx->nb_streams - 1]->codec, vCodec, NULL) < 0){
         fprintf(stderr, "could not open video codec\n");
 
         return NULL; // Could not open codec
@@ -670,11 +668,13 @@ static AVFormatContext *format_gen(struct dechunkiser_ctx *o, const uint8_t *dat
 
     if (o->streams & 0x02) {
       AVCodec  *aCodec;
+      AVStream *st;
 
-      av_new_stream(o->outctx, 1);
+      st = avformat_new_stream(o->outctx, NULL);
+      st->id = 1;
       c = o->outctx->streams[o->outctx->nb_streams - 1]->codec;
       c->codec_id = o->audio_codec_id;
-      c->codec_type = CODEC_TYPE_AUDIO;
+      c->codec_type = AVMEDIA_TYPE_AUDIO;
       c->sample_rate = o->sample_rate;
       c->channels = o->channels;
       c->frame_size = o->frame_size;
@@ -687,7 +687,7 @@ static AVFormatContext *format_gen(struct dechunkiser_ctx *o, const uint8_t *dat
 
         return NULL;
       }
-      if (avcodec_open(o->outctx->streams[o->outctx->nb_streams - 1]->codec, aCodec)<0) {
+      if (avcodec_open2(o->outctx->streams[o->outctx->nb_streams - 1]->codec, aCodec, NULL) < 0) {
         fprintf (stderr, "could not open audio codec\n");
 
         return NULL; // Could not open codec
@@ -776,8 +776,8 @@ static void play_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int siz
     if(o->t0 == 0){
       o->t0 = av_gettime();
     }
-    av_set_parameters(o->outctx, NULL);
-    dump_format(o->outctx, 0, "", 1);
+    /*av_set_parameters(o->outctx, NULL);*/
+    av_dump_format(o->outctx, 0, "", 1);
   }
   if ((o->streams & media_type) == 0) {
     return;    /* Received a chunk for a non-selected stream */
@@ -851,13 +851,14 @@ static void play_close(struct dechunkiser_ctx *s)
  
   for (i = 0; i < s->outctx->nb_streams; i++) {
     avcodec_close(s->outctx->streams[i]->codec);
-    av_metadata_free(&s->outctx->streams[i]->metadata);
+    /*av_metadata_free(&s->outctx->streams[i]->metadata);
     av_free(s->outctx->streams[i]->codec);
     av_free(s->outctx->streams[i]->info);
     av_free(s->outctx->streams[i]);
+    */
   }
-  av_metadata_free(&s->outctx->metadata);
-  free(s->outctx);
+  /*av_metadata_free(&s->outctx->metadata);*/
+  avformat_free_context(s->outctx);
   //tobefreed c1->d_area, c1->gc
   //gtk_widget_destroy(window);
   if (s->swsctx) {

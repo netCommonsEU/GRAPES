@@ -13,7 +13,7 @@
 #include "int_coding.h"
 #include "payload.h"
 #include "config.h"
-#include "ffmpeg_compat.h"
+//#include "ffmpeg_compat.h"
 #include "dechunkiser_iface.h"
 
 struct dechunkiser_ctx {
@@ -127,10 +127,13 @@ static AVFormatContext *format_gen(struct dechunkiser_ctx *o, const uint8_t *dat
 
     o->outctx = format_init(o);
     if (o->streams & 0x01) {
-      av_new_stream(o->outctx, 0);
+      AVStream *st;
+
+      st = avformat_new_stream(o->outctx, NULL);
+      st->id = 0;
       c = o->outctx->streams[o->outctx->nb_streams - 1]->codec;
       c->codec_id = o->video_codec_id;
-      c->codec_type = CODEC_TYPE_VIDEO;
+      c->codec_type = AVMEDIA_TYPE_VIDEO;
       c->width = o->width;
       c->height= o->height;
       c->time_base.den = o->video_time_base.den;
@@ -140,10 +143,13 @@ static AVFormatContext *format_gen(struct dechunkiser_ctx *o, const uint8_t *dat
       c->pix_fmt = PIX_FMT_YUV420P;
     }
     if (o->streams & 0x02) {
-      av_new_stream(o->outctx, 1);
+      AVStream *st;
+
+      st = avformat_new_stream(o->outctx, NULL);
+      st->id = 1;
       c = o->outctx->streams[o->outctx->nb_streams - 1]->codec;
       c->codec_id = o->audio_codec_id;
-      c->codec_type = CODEC_TYPE_AUDIO;
+      c->codec_type = AVMEDIA_TYPE_AUDIO;
       c->sample_rate = o->sample_rate;
       c->channels = o->channels;
       c->frame_size = o->frame_size;
@@ -224,11 +230,11 @@ static void avf_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size
 
       return;
     }
-    av_set_parameters(o->outctx, NULL);
+    /* av_set_parameters(o->outctx, NULL);	FIXME? */
     snprintf(o->outctx->filename, sizeof(o->outctx->filename), "%s", o->output_file);
-    dump_format(o->outctx, 0, o->output_file, 1);
-    url_fopen(&o->outctx->pb, o->output_file, URL_WRONLY);
-    av_write_header(o->outctx);
+    av_dump_format(o->outctx, 0, o->output_file, 1);
+    avio_open(&o->outctx->pb, o->output_file, URL_WRONLY);
+    avformat_write_header(o->outctx, NULL);
   }
   if ((o->streams & media_type) == 0) {
     return;		/* Received a chunk for a non-selected stream */
@@ -268,11 +274,12 @@ static void avf_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size
 
 static void avf_close(struct dechunkiser_ctx *s)
 {
-  int i;
+  /*int i;*/
 
   av_write_trailer(s->outctx);
-  url_fclose(s->outctx->pb);
+  avio_close(s->outctx->pb);
 
+  /*
   for (i = 0; i < s->outctx->nb_streams; i++) {
     av_metadata_free(&s->outctx->streams[i]->metadata);
     av_free(s->outctx->streams[i]->codec);
@@ -280,7 +287,8 @@ static void avf_close(struct dechunkiser_ctx *s)
     av_free(s->outctx->streams[i]);
   }
   av_metadata_free(&s->outctx->metadata);
-  free(s->outctx);
+  */
+  avformat_free_context(s->outctx);
   free(s->output_format);
   free(s->output_file);
   free(s);

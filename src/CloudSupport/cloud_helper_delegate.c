@@ -4,11 +4,13 @@
  *  This is free software; see lgpl-2.1.txt
  */
 
+//#include <time.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <dlfcn.h>
 #include <stdio.h>
 
+#include "net_helper.h"
 #include "cloud_helper_iface.h"
 #include "config.h"
 

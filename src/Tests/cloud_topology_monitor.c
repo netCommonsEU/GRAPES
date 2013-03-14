@@ -98,7 +98,6 @@ static void loop(struct context *con)
   while (!done) {
     int len;
     int news;
-    int err;
     int i;
     const struct timeval tout = {1, 0};
     struct timeval t1;
@@ -110,7 +109,7 @@ static void loop(struct context *con)
 
     t1 = tout;
     sleep(5);
-    err = get_from_cloud(con->cloud_context, CLOUD_VIEW_KEY, NULL, 0, 0);
+    get_from_cloud(con->cloud_context, CLOUD_VIEW_KEY, NULL, 0, 0);
     news = wait4cloud(con->cloud_context, &t1);
     if (news > 0) {
       len = recv_from_cloud(con->cloud_context, buff, BUFFSIZE);

@@ -132,7 +132,7 @@ int client_side(struct nodeID *my_sock)
     struct chunkID_set *cset = NULL;
     struct chunkID_set *rcset = NULL;
     int ret;
-    enum signaling_type sig_type;
+    /* enum signaling_type sig_type; */
 
     dst = create_node(dst_ip, dst_port);
     fprintf(stdout,"Sending signal\n");
@@ -187,7 +187,7 @@ int client_side(struct nodeID *my_sock)
     fprintf(stdout, "done: %d\n", ret);
     nodeid_free(dst);
 
-    sig_type = sig_receive(my_sock, NULL, NULL, &rcset);
+    /* sig_type = */ sig_receive(my_sock, NULL, NULL, &rcset);
     printChunkID_set(rcset);
     if (cset) chunkID_set_free(cset);
     if (rcset) chunkID_set_free(rcset);

@@ -94,14 +94,21 @@ endif
 
 cloud_test: cloud_test.o net_helpers.o
 cloud_test: $(NET_HELPER).o
+cloud_test: ../CloudSupport/cloud_helper.o ../CloudSupport/cloud_helper_utils.o
+cloud_test: CFLAGS += -pthread
+cloud_test: LDFLAGS += -pthread
 
 cloudcast_topology_test: cloudcast_topology_test.o net_helpers.o
 cloudcast_topology_test: $(NET_HELPER).o
+cloudcast_topology_test: ../CloudSupport/cloud_helper.o ../CloudSupport/cloud_helper_utils.o
 cloudcast_topology_test: CFLAGS += -pthread
 cloudcast_topology_test: LDFLAGS += -pthread
 
 cloud_topology_monitor: cloud_topology_monitor.o net_helpers.o
 cloud_topology_monitor: $(NET_HELPER).o
+cloud_topology_monitor: ../CloudSupport/cloud_helper.o ../CloudSupport/cloud_helper_utils.o
+cloud_topology_monitor: CFLAGS += -pthread
+cloud_topology_monitor: LDFLAGS += -pthread
 
 test_queue: test_queue.o
 test_queue: CFLAGS += -I$(BASE)/src/Utils

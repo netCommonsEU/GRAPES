@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "cloud_helper.h"
 #include "net_helper.h"
 #include "topocache.h"
 #include "proto.h"

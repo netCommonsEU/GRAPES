@@ -3,10 +3,7 @@ BASE = ..
 endif
 CFGDIR ?= .
 
-SUBDIRS = ChunkIDSet ChunkTrading TopologyManager ChunkBuffer PeerSet Scheduler Cache PeerSampler Utils Chunkiser
-ifneq ($(ARCH),win32)
-  SUBDIRS += CloudSupport
-endif
+SUBDIRS = ChunkIDSet ChunkTrading TopologyManager ChunkBuffer PeerSet Scheduler Cache PeerSampler Utils Chunkiser CloudSupport
 COMMON_OBJS = config.o
 
 OBJ_LSTS = $(addsuffix /objs.lst, $(SUBDIRS))

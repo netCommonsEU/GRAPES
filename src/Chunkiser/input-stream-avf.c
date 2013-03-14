@@ -13,12 +13,15 @@
 #include "int_coding.h"
 #include "payload.h"
 #include "config.h"
-#include "ffmpeg_compat.h"
+//#include "ffmpeg_compat.h"
 #include "chunkiser_iface.h"
 
 #define STATIC_BUFF_SIZE 1000 * 1024
 #define VFRAMES_DEFAULT 1
 #define AFRAMES_DEFAULT 1
+#ifndef MAX_STREAMS
+#define MAX_STREAMS 20
+#endif
 struct chunkiser_ctx {
   AVFormatContext *s;
   int loop;	//loop on input file infinitely
@@ -155,15 +158,16 @@ static struct chunkiser_ctx *avf_open(const char *fname, int *period, const char
   if (desc == NULL) {
     return NULL;
   }
-  res = av_open_input_file(&desc->s, fname, NULL, 0, NULL);
+  desc->s = avformat_alloc_context();
+  res = avformat_open_input(&desc->s, fname, NULL, NULL);
   if (res < 0) {
     fprintf(stderr, "Error opening %s: %d\n", fname, res);
 
     return NULL;
   }
 
-  desc->s->flags |= AVFMT_FLAG_GENPTS;
-  res = av_find_stream_info(desc->s);
+  /*desc->s->flags |= AVFMT_FLAG_GENPTS; !!!FIXME!!!*/
+  res = avformat_find_stream_info(desc->s, NULL);
   if (res < 0) {
     fprintf(stderr, "Cannot find codec parameters for %s\n", fname);
 
@@ -205,7 +209,7 @@ static struct chunkiser_ctx *avf_open(const char *fname, int *period, const char
   }
   free(cfg_tags);
   for (i = 0; i < desc->s->nb_streams; i++) {
-    if (desc->s->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO) {
+    if (desc->s->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
       if (video_streams++ == 0) {
         desc->streams |= 1ULL << i;
       }
@@ -215,7 +219,7 @@ static struct chunkiser_ctx *avf_open(const char *fname, int *period, const char
               av_rescale(1000000, desc->s->streams[i]->r_frame_rate.den, desc->s->streams[i]->r_frame_rate.num));
       *period = av_rescale(1000000, desc->s->streams[i]->r_frame_rate.den, desc->s->streams[i]->r_frame_rate.num);
     }
-    if (desc->s->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO) {
+    if (desc->s->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
       if (audio_streams++ == 0) {
         desc->streams |= 1ULL << i;
       }
@@ -229,7 +233,7 @@ static struct chunkiser_ctx *avf_open(const char *fname, int *period, const char
     }
   }
 
-  dump_format(desc->s, 0, fname, 0);
+  av_dump_format(desc->s, 0, fname, 0);
 
 
   return desc;
@@ -244,7 +248,7 @@ static void avf_close(struct chunkiser_ctx *s)
       av_bitstream_filter_close(s->bsf[i]);
     }
   }
-  av_close_input_file(s->s);
+  avformat_close_input(&s->s);
 
   //free buffers
   free(s->v_data);
@@ -258,7 +262,7 @@ static AVRational get_new_tb(AVStream *stream)
   AVRational new_tb;
 
   switch (stream->codec->codec_type) {
-    case CODEC_TYPE_VIDEO:
+    case AVMEDIA_TYPE_VIDEO:
       new_tb.den = stream->avg_frame_rate.num;
       new_tb.num = stream->avg_frame_rate.den;
       if (new_tb.num == 0) {
@@ -266,7 +270,7 @@ static AVRational get_new_tb(AVStream *stream)
         new_tb.num = stream->r_frame_rate.den;
       }
       break;
-    case CODEC_TYPE_AUDIO:
+    case AVMEDIA_TYPE_AUDIO:
       new_tb = (AVRational){stream->codec->frame_size, stream->codec->sample_rate};
       break;
     default:
@@ -281,10 +285,10 @@ static AVRational get_new_tb(AVStream *stream)
 static void header_fill(uint8_t *data, AVStream *stream)
 {
   switch (stream->codec->codec_type) {
-    case CODEC_TYPE_VIDEO:
+    case AVMEDIA_TYPE_VIDEO:
       video_header_fill(data, stream);
       break;
-    case CODEC_TYPE_AUDIO:
+    case AVMEDIA_TYPE_AUDIO:
       audio_header_fill(data, stream);
       break;
     default:
@@ -297,10 +301,10 @@ static void header_fill(uint8_t *data, AVStream *stream)
 static int get_header_size(AVStream *stream)
 {
   switch (stream->codec->codec_type) {
-    case CODEC_TYPE_VIDEO:
+    case AVMEDIA_TYPE_VIDEO:
       return VIDEO_PAYLOAD_HEADER_SIZE;
       break;
-    case CODEC_TYPE_AUDIO:
+    case AVMEDIA_TYPE_AUDIO:
       return AUDIO_PAYLOAD_HEADER_SIZE;
       break;
     default:
@@ -372,13 +376,13 @@ static uint8_t *avf_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_
   }
 
   switch (s->s->streams[pkt.stream_index]->codec->codec_type) {
-    case CODEC_TYPE_VIDEO:
+    case AVMEDIA_TYPE_VIDEO:
       frames = &s->v_frames;
       data = &s->v_data;
       chunksize = &s->v_size;
       frames_max = s->v_frames_max;
       break;
-    case CODEC_TYPE_AUDIO:
+    case AVMEDIA_TYPE_AUDIO:
       frames = &s->a_frames;
       data = &s->a_data;
       chunksize = &s->a_size;

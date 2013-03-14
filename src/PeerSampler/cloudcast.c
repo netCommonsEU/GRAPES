@@ -19,6 +19,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "cloud_helper.h"
 #include "net_helper.h"
 #include "peersampler_iface.h"
 #include "../Cache/topocache.h"
