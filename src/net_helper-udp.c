@@ -332,11 +332,9 @@ void nodeid_free(struct nodeID *s)
 int node_ip(const struct nodeID *s, char *ip, int len)
 {
   int res;
-  struct sockaddr_storage ss;
   switch (s->addr.ss_family)
   {
     case AF_INET:
-      memcpy (&ss, &s->addr,sizeof(ss));
       res = inet_ntop(s->addr.ss_family, &((const struct sockaddr_in *)&s->addr)->sin_addr, ip, len);
       break;
     case AF_INET6:
