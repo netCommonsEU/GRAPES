@@ -5,12 +5,6 @@
  *  This is free software; see lgpl-2.1.txt
  */
 
-#ifdef _WIN32
-const char *iface_addr(const char *iface)
-{
-  return iface;
-}
-#else
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -20,36 +14,73 @@ const char *iface_addr(const char *iface)
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ifaddrs.h>
+#include <netdb.h>
 
 #include "net_helpers.h"
 
+extern enum L3PROTOCOL {IPv4, IPv6} l3;
+
+
 const char *iface_addr(const char *iface)
 {
-    int s, res;
-    struct ifreq iface_request;
-    struct sockaddr_in *sin;
-    char buff[512];
+#ifndef _WIN32
+    struct ifaddrs *if_addr, *ifap;
+	int family;
+	char *host_addr;
+	int ifcount;
 
-    s = socket(AF_INET, SOCK_DGRAM, 0);
-    if (s < 0) {
-        return NULL;
-    }
+	if (getifaddrs(&if_addr) == -1)
+	{
+	  perror("getif_addrs");
+	  return NULL;
+	}
+	ifcount = 0;
+	for (ifap = if_addr; ifap != NULL; ifap = ifap->ifa_next)
+	{
+		if (ifap->ifa_addr == NULL)
+		{
+			ifcount++;
+			continue;
+		}
+		family = ifap->ifa_addr->sa_family;
+		if (l3 == IPv4 && family == AF_INET && !strcmp (ifap->ifa_name, iface))
+		{
+			host_addr = malloc((size_t)INET_ADDRSTRLEN);
+			if (!host_addr)
+			{
+				perror("malloc host_addr");
+				return NULL;
+			}
+			if (!inet_ntop(AF_INET, (void *)&(((struct sockaddr_in *)(ifap->ifa_addr))->sin_addr), host_addr, INET_ADDRSTRLEN))
+			{
+				perror("inet_ntop");
+				return NULL;
+			}
+			break;
+		}
+		if (l3 == IPv6 && family == AF_INET6 && !strcmp (ifap->ifa_name, iface))
+		{
+			host_addr = malloc((size_t)INET6_ADDRSTRLEN);
+			if (!host_addr)
+			{
+				perror("malloc host_addr");
+				return NULL;
+			}
+			if (!inet_ntop(AF_INET6, (void *)&(((struct sockaddr_in6 *)(ifap->ifa_addr))->sin6_addr), host_addr, INET6_ADDRSTRLEN))
+			{
+				perror("inet_ntop");
+				return NULL;
+			}
+			break;
+		}
 
-    memset(&iface_request, 0, sizeof(struct ifreq));
-    sin = (struct sockaddr_in *)&iface_request.ifr_addr;
-    strcpy(iface_request.ifr_name, iface);
-    /* sin->sin_family = AF_INET); */
-    res = ioctl(s, SIOCGIFADDR, &iface_request);
-    if (res < 0) {
-        perror("ioctl(SIOCGIFADDR)");
-        close(s);
-
-        return NULL;
-    }
-    close(s);
-
-    inet_ntop(AF_INET, &sin->sin_addr, buff, sizeof(buff));
-
-    return strdup(buff);
-}
+	}
+	freeifaddrs(if_addr);
+	return host_addr;
+#else
+    if(iface != NULL && strcmp(iface, "lo") == 0) return (l3==IPv4?"127.0.0.1":"::1");
+    if(iface != NULL && inet_addr(iface) != INADDR_NONE) return strdup(iface);
+    return default_ip_addr();
 #endif
+}
