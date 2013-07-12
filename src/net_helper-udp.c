@@ -16,6 +16,7 @@
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #else
 #include "win32-net.h"
@@ -24,9 +25,10 @@
 #include "net_helper.h"
 
 #define MAX_MSG_SIZE 1024 * 60
+enum L3PROTOCOL {IPv4, IPv6} l3 = IPv4;
 
 struct nodeID {
-  struct sockaddr_in addr;
+  struct sockaddr_storage addr;
   int fd;
 };
 
@@ -73,13 +75,39 @@ struct nodeID *create_node(const char *IPaddr, int port)
 {
   struct nodeID *s;
   int res;
+  struct addrinfo hints, *result;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_flags = AI_NUMERICHOST;
 
   s = malloc(sizeof(struct nodeID));
   memset(s, 0, sizeof(struct nodeID));
-  s->addr.sin_family = AF_INET;
-  s->addr.sin_port = htons(port);
-  res = inet_aton(IPaddr, &s->addr.sin_addr);
+
+  if ((res = getaddrinfo(IPaddr, NULL, &hints, &result)))
+  {
+    fprintf(stderr, "Cannot resolve hostname '%s'\n", IPaddr);
+    return NULL;
+  }
+  s->addr.ss_family = result->ai_family;
+  switch (result->ai_family)
+  {
+    case (AF_INET):
+      ((struct sockaddr_in *)&s->addr)->sin_port = htons(port);
+      res = inet_pton (result->ai_family, IPaddr, &((struct sockaddr_in *)&s->addr)->sin_addr);
+    break;
+    case (AF_INET6):
+      ((struct sockaddr_in6 *)&s->addr)->sin6_port = htons(port);
+      res = inet_pton (result->ai_family, IPaddr, &(((struct sockaddr_in6 *) &s->addr)->sin6_addr));
+    break;
+    default:
+      fprintf(stderr, "Cannot resolve address family %d for '%s'\n", result->ai_family, IPaddr);
+      res = 0;
+      break;
+  }
+  freeaddrinfo(result);
   if (res == 0) {
+    fprintf(stderr, "Could not convert address '%s'\n", IPaddr);
     free(s);
 
     return NULL;
@@ -101,15 +129,33 @@ struct nodeID *net_helper_init(const char *my_addr, int port, const char *config
 
     return NULL;
   }
-  myself->fd =  socket(AF_INET, SOCK_DGRAM, 0);
+  myself->fd =  socket(myself->addr.ss_family, SOCK_DGRAM, 0);
   if (myself->fd < 0) {
     free(myself);
 
     return NULL;
   }
+//  TODO:
+//  if (addr->sa_family == AF_INET6) {
+//      r = setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on));
+//  }
+
   fprintf(stderr, "My sock: %d\n", myself->fd);
 
-  res = bind(myself->fd, (struct sockaddr *)&myself->addr, sizeof(struct sockaddr_in));
+  switch (myself->addr.ss_family)
+  {
+    case (AF_INET):
+        res = bind(myself->fd, (struct sockaddr *)&myself->addr, sizeof(struct sockaddr_in));
+    break;
+    case (AF_INET6):
+        res = bind(myself->fd, (struct sockaddr *)&myself->addr, sizeof(struct sockaddr_in6));
+    break;
+    default:
+      fprintf(stderr, "Cannot resolve address family %d in bind\n", myself->addr.ss_family);
+      res = 0;
+    break;
+  }
+
   if (res < 0) {
     /* bind failed: not a local address... Just close the socket! */
     close(myself->fd);
@@ -141,7 +187,7 @@ int send_to_peer(const struct nodeID *from, struct nodeID *to, const uint8_t *bu
   iov[0].iov_base = &my_hdr;
   iov[0].iov_len = sizeof(struct my_hdr_t);
   msg.msg_name = &to->addr;
-  msg.msg_namelen = sizeof(struct sockaddr_in);
+  msg.msg_namelen = sizeof(struct sockaddr_storage);
   msg.msg_iovlen = 2;
   msg.msg_iov = iov;
 
@@ -174,7 +220,7 @@ int send_to_peer(const struct nodeID *from, struct nodeID *to, const uint8_t *bu
 int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *buffer_ptr, int buffer_size)
 {
   int res, recv, m_seq, frag_seq;
-  struct sockaddr_in raddr;
+  struct sockaddr_storage raddr;
   struct msghdr msg = {0};
   static struct my_hdr_t my_hdr;
   struct iovec iov[2];
@@ -182,7 +228,7 @@ int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *
   iov[0].iov_base = &my_hdr;
   iov[0].iov_len = sizeof(struct my_hdr_t);
   msg.msg_name = &raddr;
-  msg.msg_namelen = sizeof(struct sockaddr_in);
+  msg.msg_namelen = sizeof(struct sockaddr_storage);
   msg.msg_iovlen = 2;
   msg.msg_iov = iov;
 
@@ -248,21 +294,21 @@ struct nodeID *nodeid_dup(struct nodeID *s)
 
 int nodeid_equal(const struct nodeID *s1, const struct nodeID *s2)
 {
-  return (memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_in)) == 0);
+  return (memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_storage)) == 0);
 }
 
 int nodeid_cmp(const struct nodeID *s1, const struct nodeID *s2)
 {
-  return memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_in));
+  return memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_storage));
 }
 
 int nodeid_dump(uint8_t *b, const struct nodeID *s, size_t max_write_size)
 {
-  if (max_write_size < sizeof(struct sockaddr_in)) return -1;
+  if (max_write_size < sizeof(struct sockaddr_storage)) return -1;
 
-  memcpy(b, &s->addr, sizeof(struct sockaddr_in));
+  memcpy(b, &s->addr, sizeof(struct sockaddr_storage));
 
-  return sizeof(struct sockaddr_in);
+  return sizeof(struct sockaddr_storage);
 }
 
 struct nodeID *nodeid_undump(const uint8_t *b, int *len)
@@ -270,10 +316,10 @@ struct nodeID *nodeid_undump(const uint8_t *b, int *len)
   struct nodeID *res;
   res = malloc(sizeof(struct nodeID));
   if (res != NULL) {
-    memcpy(&res->addr, b, sizeof(struct sockaddr_in));
+    memcpy(&res->addr, b, sizeof(struct sockaddr_storage));
     res->fd = -1;
   }
-  *len = sizeof(struct sockaddr_in);
+  *len = sizeof(struct sockaddr_storage);
 
   return res;
 }
@@ -285,7 +331,22 @@ void nodeid_free(struct nodeID *s)
 
 int node_ip(const struct nodeID *s, char *ip, int len)
 {
-  if (inet_ntop(AF_INET, &(s->addr.sin_addr), ip, len) == NULL) {
+  int res;
+  struct sockaddr_storage ss;
+  switch (s->addr.ss_family)
+  {
+    case AF_INET:
+      memcpy (&ss, &s->addr,sizeof(ss));
+      res = inet_ntop(s->addr.ss_family, &((const struct sockaddr_in *)&s->addr)->sin_addr, ip, len);
+      break;
+    case AF_INET6:
+      res = inet_ntop(s->addr.ss_family, &((const struct sockaddr_in6 *)&s->addr)->sin6_addr, ip, len);
+      break;
+    default:
+      res = 0;
+      break;
+  }
+  if (!res) {
     return -1;
   }
 
@@ -294,5 +355,18 @@ int node_ip(const struct nodeID *s, char *ip, int len)
 
 int node_port(const struct nodeID *s)
 {
-  return ntohs(s->addr.sin_port);
+  int res;
+  switch (s->addr.ss_family)
+  {
+    case AF_INET:
+      res = ntohs(((const struct sockaddr_in *) &s->addr)->sin_port);
+      break;
+    case AF_INET6:
+      res = ntohs(((const struct sockaddr_in6 *)&s->addr)->sin6_port);
+      break;
+    default:
+      res = -1;
+      break;
+  }
+  return res;
 }
