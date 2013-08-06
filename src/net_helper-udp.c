@@ -333,23 +333,21 @@ void nodeid_free(struct nodeID *s)
 
 int node_ip(const struct nodeID *s, char *ip, int len)
 {
-  int res;
   switch (s->addr.ss_family)
   {
     case AF_INET:
-      res = inet_ntop(s->addr.ss_family, &((const struct sockaddr_in *)&s->addr)->sin_addr, ip, len);
+      inet_ntop(s->addr.ss_family, &((const struct sockaddr_in *)&s->addr)->sin_addr, ip, len);
       break;
     case AF_INET6:
-      res = inet_ntop(s->addr.ss_family, &((const struct sockaddr_in6 *)&s->addr)->sin6_addr, ip, len);
+      inet_ntop(s->addr.ss_family, &((const struct sockaddr_in6 *)&s->addr)->sin6_addr, ip, len);
       break;
     default:
-      res = 0;
       break;
   }
-  if (!res) {
-    return -1;
+  if (!ip) {
+	  perror("inet_ntop");
+	  return -1;
   }
-
   return 1;
 }
 
