@@ -367,18 +367,6 @@ inet_pton6(const char *src, u_char *dst)
 	return (1);
 }
 
-
-static int inet_aton(const char *cp, struct in_addr *addr)
-{
-    if( cp==NULL || addr==NULL )
-    {
-        return(0);
-    }
-
-    addr->s_addr = inet_addr(cp);
-    return (addr->s_addr == INADDR_NONE) ? 0 : 1;
-}
-
 static ssize_t recvmsg (int sd, struct msghdr *msg, int flags)
 {
   ssize_t bytes_read;
