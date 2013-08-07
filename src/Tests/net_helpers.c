@@ -87,6 +87,6 @@ const char *iface_addr(const char *iface)
 #else
     if(iface != NULL && strcmp(iface, "lo") == 0) return (l3==IPv4?"127.0.0.1":"::1");
     if(iface != NULL && inet_addr(iface) != INADDR_NONE) return strdup(iface);
-    return "127.0.0.1";
+    return (l3==IPv4?"127.0.0.1":"::1");
 #endif
 }
