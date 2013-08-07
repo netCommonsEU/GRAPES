@@ -107,7 +107,8 @@ struct nodeID *create_node(const char *IPaddr, int port)
       break;
   }
   freeaddrinfo(result);
-  if (res == 0) {
+  if (res != 1)
+  {
     fprintf(stderr, "Could not convert address '%s'\n", IPaddr);
     free(s);
 
