@@ -5,17 +5,23 @@
  *  This is free software; see lgpl-2.1.txt
  */
 
+#include <sys/types.h>
+#ifndef _WIN32
+#include <ifaddrs.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/if.h>     /* For struct ifreq */
+#include <netdb.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ifaddrs.h>
-#include <netdb.h>
 
 #include "net_helpers.h"
 
@@ -81,6 +87,6 @@ const char *iface_addr(const char *iface)
 #else
     if(iface != NULL && strcmp(iface, "lo") == 0) return (l3==IPv4?"127.0.0.1":"::1");
     if(iface != NULL && inet_addr(iface) != INADDR_NONE) return strdup(iface);
-    return default_ip_addr();
+    return "127.0.0.1";
 #endif
 }
