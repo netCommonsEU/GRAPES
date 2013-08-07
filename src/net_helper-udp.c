@@ -19,6 +19,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #else
+#define _WIN32_WINNT 0x0501 /* WINNT>=0x501 (WindowsXP) for supporting getaddrinfo/freeaddrinfo.*/
 #include "win32-net.h"
 #endif
 
