@@ -1,6 +1,7 @@
 /*
  *  Copyright (c) 2010 Luca Abeni
  *  Copyright (c) 2010 Csaba Kiraly
+ *  Copyright (c) 2010 Alessandro Russo
  *
  *  This is free software; see lgpl-2.1.txt
  */
