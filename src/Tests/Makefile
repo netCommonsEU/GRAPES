@@ -18,7 +18,8 @@ TESTS = topology_test \
         cb_test \
         config_test \
         tman_test \
-        topo_msg_size_test
+        topo_msg_size_test \
+        inet_test
 
 ifneq ($(ARCH),win32)
   TESTS += topology_test_th \
@@ -44,7 +45,7 @@ all: $(TESTS)
 include $(BASE)/src/utils.mak
 
 ifeq ($(ARCH),win32)
-LDLIBS += -lws2_32
+LDLIBS += -lws2_32 -lwsock32
 endif
 
 topo_msg_size_test: $(NET_HELPER).o
@@ -74,8 +75,14 @@ chunk_sending_test: $(NET_HELPER).o
 chunk_signaling_test: chunk_signaling_test.o net_helpers.o chunkid_set_h.o
 chunk_signaling_test: $(NET_HELPER).o
 
+config_test: config_test.o
+
 tman_test: tman_test.o topology.o peer.o net_helpers.o
 tman_test: $(NET_HELPER).o
+
+inet_test: inet_test.o net_helpers.o
+inet_test: $(NET_HELPER).o
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@.exe
 
 chunkiser_test: chunkiser_test.o
 chunkiser_test: $(NET_HELPER).o
