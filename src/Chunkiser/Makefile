@@ -9,6 +9,7 @@ OBJS = input-stream.o           \
        input-stream-dummy.o     \
        input-stream-dumb.o      \
        input-stream-udp.o       \
+       input-stream-rtp.o       \
        output-stream.o          \
        output-stream-raw.o      \
        output-stream-udp.o      \
