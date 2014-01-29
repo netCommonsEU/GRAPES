@@ -77,6 +77,10 @@ chunk_signaling_test: $(NET_HELPER).o
 tman_test: tman_test.o topology.o peer.o net_helpers.o
 tman_test: $(NET_HELPER).o
 
+# TODO: I believe every test should depend on libgrapes.a,
+#       but someone more skilled may be required to do it properly
+chunkiser_test: ../libgrapes.a
+
 chunkiser_test: chunkiser_test.o
 chunkiser_test: $(NET_HELPER).o
 ifdef FFDIR
