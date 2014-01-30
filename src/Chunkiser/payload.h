@@ -119,3 +119,13 @@ static inline void rtp_payload_per_pkt_header_set(uint8_t *payload, int pkt_head
   int16_cpy(payload + pkt_header_offset, size);
   *(payload +  pkt_header_offset + 2) = stream;
 }
+
+static inline int rtp_payload_header_parse(uint8_t *payload) {
+  return int16_rcpy(payload);
+}
+
+static inline void rtp_payload_per_pkt_header_parse(uint8_t *data, int *size, int *stream)
+{
+  *size = int16_rcpy(data);
+  *stream = data[2]; 
+}

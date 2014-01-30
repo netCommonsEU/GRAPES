@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2010 Csaba Kiraly
+ *  Copyright (c) 2014 Davide Kirchner
  *
  *  This is free software; see gpl-3.0.txt
  */
@@ -24,8 +24,8 @@
 #include "payload.h"
 #include "config.h"
 #include "chunkiser_iface.h"
+#include "stream-rtp.h"
 
-#define RTP_UDP_PORTS_NUM_MAX 2 * 5   // each rtp stream takes 2 ports
 #define UDP_MAX_SIZE 65536   // 2^16
 //#define RTP_MAX_CHUNK_SIZE (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) * 50
 #define RTP_MAX_CHUNK_SIZE (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) + 20
@@ -51,7 +51,7 @@ struct chunkiser_ctx {
 
 /* Define a printf-like function for logging */
 static void printf_log(const struct chunkiser_ctx *ctx, int loglevel,
-		       const char *fmt, ...) {
+                       const char *fmt, ...) {
   va_list args;
   FILE* s = stderr;
   if (loglevel <= ctx->verbosity && strlen(fmt)) {
@@ -119,41 +119,6 @@ static int listen_udp(const struct chunkiser_ctx *ctx, int port)
 
 
 /*
-  Given a config string that is either <port> or <port>:<port>,
-  fills ports[0] (rtp port) and ports[1] (rtcp port) with integers.
-  Returns nonzero on success, 0 on failure.
- */
-static int port_pair_parse(const char *conf_str, int *ports) {
-  char *ptr;
-  int port;
-
-  ptr = strchr(conf_str, ':');
-  if (ptr == NULL) {
-    if (sscanf(conf_str, "%u", &port) == EOF) {
-      return 0;
-    }
-    // fprintf(stderr, "  Parsed single port: %u\n", port);
-    // pedantic compliant with RFC 5330, section 11:
-    if (port % 2 == 0) {  // even port: this is RTP, the next is RTCP
-      ports[0] = port;
-      ports[1] = port + 1;
-    }
-    else {  // odd port: this is RTCP, previous is RTP
-      ports[1] = port;
-      ports[0] = port - 1;
-    }
-  }
-  else {
-    if (sscanf(conf_str, "%u:%u", &ports[0], &ports[1]) == EOF) {
-      return 0;
-    }
-    // fprintf(stderr, "  Parsed double ports %u:%u\n", ports[0], ports[1]);
-  }
-
-  return 1;
-}
-
-/*
   Read config string `config`, updates `ctx` accordingly.
   Also open required UDP ports, so as to save their file descriptors
   in context.
@@ -162,8 +127,10 @@ static int port_pair_parse(const char *conf_str, int *ports) {
 static int conf_parse(struct chunkiser_ctx *ctx, const char *config)
 {
   int ports[RTP_UDP_PORTS_NUM_MAX + 1];
-  int i = 0;
+  int ports_len;
   struct tag *cfg_tags;
+  int i;
+  const char *error_str;
 
   /* Default context values */
   ctx->video_stream_id = -1;
@@ -174,78 +141,26 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config)
   /* Parse options */
   cfg_tags = config_parse(config);
   if (cfg_tags) {
-    const char *val;
-    int j;
-
     config_value_int(cfg_tags, "verbosity", &(ctx->verbosity));
     printf_log(ctx, 2, "Verbosity set to %i", ctx->verbosity);
 
     config_value_int(cfg_tags, "rfc3551", &(ctx->rfc3551));
     printf_log(ctx, 2, "%ssing RFC 3551",
-	       (ctx->rfc3551 ? "U" : "Not u"));
+               (ctx->rfc3551 ? "U" : "Not u"));
     
     // TODO: read max_chunk_size
     printf_log(ctx, 2, "Maximum chunk size (in bytes) is %i", ctx->max_size);
 
-    /* Ports defined with explicit stream numbers */
-    for (j = 0; j < RTP_UDP_PORTS_NUM_MAX / 2; j++) {
-      char tag[8];
-
-      sprintf(tag, "stream%d", j);
-      val = config_value_str(cfg_tags, tag);
-      if (val != NULL) {
-        if (! port_pair_parse(val, &ports[i])) {
-	  //log(ctx, )
-          return 0;
-        }
-        i += 2;
-	ctx->video_stream_id = 0;
-      }
-    }
-    /* Ports defined with "audio", "video" */
-    if (i == 0) {
-      val = config_value_str(cfg_tags, "audio");
-      if (val != NULL) {
-        if (! port_pair_parse(val, &ports[i])) {
-          return 0;
-        }
-        i += 2;
-      }
-      val = config_value_str(cfg_tags, "video");
-      if (val != NULL) {
-        if (! port_pair_parse(val, &ports[i])) {
-          return 0;
-        }
-	ctx->video_stream_id = i / 2;
-        i += 2;
-      }
-    }
-    /* Ports defined with "base" */
-    if (i == 0) {
-      if (config_value_int(cfg_tags, "base", &ports[0])) {
-	ports[1] = ports[0] + 1;
-	ports[2] = ports[1] + 1;
-	ports[3] = ports[2] + 1;
-	ctx->video_stream_id = 1;
-	i += 4;
-      }
-    }
-    // Some port must have been configured
-    if (i == 0) {
-      printf_log(ctx, 0, "No listening port specified");
-      return 0;
-    }
-    // No port can be negative
-    for (j = 0; j < i; j ++) {  
-      if (ports[j] < 0) {
-	printf_log(ctx, 0, "Negative ports (like %i) are not allowed", ports[j]);
-	return 0;
-      }
-    }
-    // port array terminator
-    ports[i] = -1;
+    
+    ctx->fds_len =
+      rtp_ports_parse(cfg_tags, ports, &(ctx->video_stream_id), &error_str);
   }
   free(cfg_tags);
+
+  if (ctx->fds_len == 0) {
+    printf_log(ctx, 0, error_str);
+    return 0;
+  }
 
   /* Open ports */
   for (i = 0; ports[i] >= 0; i++) {
@@ -255,12 +170,14 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config)
       for (; i>=0 ; i--) {
         close(ctx->fds[i]);
       }
-
       return 0;
     }
   }
   ctx->fds[i] = -1;
-  ctx->fds_len = i;
+  if (i != ctx->fds_len) {
+    printf_log(ctx, 0, "Something very wrong happended.");
+    return 0;
+  }
 
   return 1;
 }
@@ -338,12 +255,12 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
   for (j = 0; j < ctx->fds_len && status == 0; j++) {
     i = (ctx->next_fd + j) % ctx->fds_len;
     if ((ctx->max_size - ctx->size)                          // available buffer
-	  < (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) // max pkt size
+          < (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) // max pkt size
     ) {
       // Not enough space left in buffer: send chunk
       printf_log(ctx, 2,
-		 "Sending chunk: almost maximum size reached (%i over %i)",
-		 ctx->size, ctx->max_size);
+                 "Sending chunk: almost maximum size reached (%i over %i)",
+                 ctx->size, ctx->max_size);
       status = 1;
       ctx->next_fd = i;
     }
@@ -351,12 +268,12 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
       int new_pkt_size;
       new_pkt_size = input_get_udp(
         ctx->buff + ctx->size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE,
-	ctx->fds[i]
+        ctx->fds[i]
       );
       if (new_pkt_size) {
-	rtp_payload_per_pkt_header_set(ctx->buff, ctx->size, new_pkt_size, i);
-	ctx->size += new_pkt_size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE;
-	printf_log(ctx, 2, "Got UDP message with size %i", new_pkt_size);
+        rtp_payload_per_pkt_header_set(ctx->buff, ctx->size, new_pkt_size, i);
+        ctx->size += new_pkt_size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE;
+        printf_log(ctx, 2, "Got UDP message with size %i", new_pkt_size);
       }
     }
   }
@@ -395,4 +312,3 @@ struct chunkiser_iface in_rtp = {
   .chunkise = rtp_chunkise,
   .get_fds = rtp_get_fds,
 };
-

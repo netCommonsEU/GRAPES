@@ -13,6 +13,7 @@ OBJS = input-stream.o           \
        output-stream.o          \
        output-stream-raw.o      \
        output-stream-udp.o      \
+       output-stream-rtp.o      \
        output-stream-dummy.o 
 
 ifdef FFDIR
