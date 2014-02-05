@@ -19,6 +19,15 @@
 #include <limits.h>
 #include <string.h>
 #include <stdarg.h>
+// #DEFINE NDEBUG
+#include <assert.h>
+
+#pragma message "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+
+#pragma GCC diagnostic ignored "-Wcast-qual"  // Ignore warnings from pj libs
+#include <pjlib.h>
+#include <pjmedia.h>
+#pragma GCC diagnostic pop  // Restore warnings to command line options
 
 #ifndef RTP_DEBUG
 #define NDEBUG
@@ -36,6 +45,11 @@
 #define RTP_DEFAULT_CHUNK_SIZE 20
 
 
+struct rtp_stream {
+  struct pjmedia_rtp_session rtp;
+  struct pjmedia_rtcp_session rtcp;
+};
+
 struct chunkiser_ctx {
   // fixed context (set at opening time)
   int id;                 // TODO:  What is this for?? Is it needed?
@@ -47,6 +61,7 @@ struct chunkiser_ctx {
   int verbosity;
   int fds[RTP_UDP_PORTS_NUM_MAX + 1];
   int fds_len;  // even if "-1"-terminated, save length to make things easier
+  struct rtp_stream streams[RTP_STREAMS_NUM_MAX];  // its len is fds_len/2
   // running context (set at chunkising time)
   uint8_t *buff;          // chunk buffer
   int size;               // its current size
@@ -163,7 +178,7 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
     } 
     printf_log(ctx, 2, "Chunk size (in bytes) is %d", chunk_size);
     printf_log(ctx, 2, "Maximum chunk size (in bytes) is thus %d", ctx->max_size);
-   
+    
     ctx->fds_len =
       rtp_ports_parse(cfg_tags, ports, &(ctx->video_stream_id), &error_str);
 
@@ -202,6 +217,9 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
 static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char *config) {
   struct chunkiser_ctx *res;
   struct timeval tv;
+  int i;
+
+  pj_init();
 
   res = malloc(sizeof(struct chunkiser_ctx));
   if (res == NULL) {
@@ -214,7 +232,22 @@ static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char
     return NULL;
   }
   printf_log(res, 2, "Parameter parsing was successful.");  
- 
+
+  {
+    struct pjmedia_rtp_session_setting rtp_s;
+    struct pjmedia_rtcp_session_setting rtcp_s;
+    rtp_s.flags = 0;
+    pjmedia_rtcp_session_setting_default(&rtcp_s);
+    rtcp_s.clock_rate = 1;  // Just to avoid Floating point exception
+    for (i=0; i<res->fds_len/2; i++) {
+      if (pjmedia_rtp_session_init2(&res->streams[i].rtp, rtp_s) != PJ_SUCCESS) {
+        printf_log(res, 0, "Error initialising pjmedia RTP session");
+        free(res);
+        return NULL;
+      }
+      pjmedia_rtcp_init2(&res->streams[i].rtcp, &rtcp_s);
+    }
+  }
 
   gettimeofday(&tv, NULL);
   res->start_time = tv.tv_usec + tv.tv_sec * 1000000ULL;
@@ -254,6 +287,7 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
   int status = 0;  // 0: Go on; 1: ready to send; -1: error
   uint8_t *res;
 
+  // Allocate new buffer if needed
   if (ctx->buff == NULL) {
     ctx->buff = malloc(ctx->max_size);
     if (ctx->buff != NULL) {
@@ -266,6 +300,7 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
       status = -1;
     }
   }
+  // Check open ports for incoming UDP packets in a round-robin
   for (j = 0; j < ctx->fds_len && status == 0; j++) {
     int i = (ctx->next_fd + j) % ctx->fds_len;
     int new_pkt_size;
@@ -280,10 +315,31 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
       printf_log(ctx, 2, "Got UDP message of size %d from port id #%d",
                  new_pkt_size, i);
       if (i % 2 == 0) {  // RTP packet
-        printf_log(ctx, 2, "  -> RTP packet");
+        const struct pjmedia_rtp_hdr *rtp_h;
+        const void *rtp_p;
+        int rtp_p_len;
+        if (pjmedia_rtp_decode_rtp(&ctx->streams[i/2].rtp,
+                                   new_pkt_start, new_pkt_size,
+                                   &rtp_h, &rtp_p, &rtp_p_len)
+            == PJ_SUCCESS) {
+	  pjmedia_rtcp_rx_rtp(&ctx->streams[i/2].rtcp, ntohs(rtp_h->seq),
+	                      ntohl(rtp_h->ts), rtp_p_len);
+          pjmedia_rtp_session_update(&ctx->streams[i/2].rtp, rtp_h, NULL);
+          printf_log(ctx, 2, "  -> valid RTP packet from ssrc:%u with "
+                     "type:%u, marker:%u, seq:%u, timestamp:%u",
+                     ntohl(rtp_h->ssrc), rtp_h->pt, rtp_h->m, ntohs(rtp_h->seq),
+                     ntohl(rtp_h->ts));
+        }
+        else {
+          printf_log(ctx, 1, "Got invalid RTP packet: skipping.");
+          // TODO: flag for allowing forwarding non-RTP packets?
+          continue;
+        }
       }
       else {  // RTCP packet
-        printf_log(ctx, 2, "  -> RTCP packet");
+        printf_log(ctx, 2, "  -> RTCP packet (is it valid? who knows)");
+        pjmedia_rtcp_rx_rtcp(&ctx->streams[i/2].rtcp,
+                             new_pkt_start, new_pkt_size);
       }
       rtp_payload_per_pkt_header_set(ctx->buff, ctx->size, new_pkt_size, i);
       ctx->size += new_pkt_size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE;
@@ -298,6 +354,13 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
       }
     }
   }
+  // inspect ntp time, for debugging purposes
+  for (j = 0; j < ctx->fds_len/2; j++) {
+    struct pjmedia_rtcp_ntp_rec ntp;
+    pjmedia_rtcp_get_ntp_time(&ctx->streams[j].rtcp, &ntp);
+    printf_log(ctx, 2, "NTP time for stream %d: Hi: %u Lo: %u", j, ntp.hi, ntp.lo);
+  }
+  printf_log(ctx, 2, ".");
 
   if (status > 0) {
     struct timeval now;
@@ -333,3 +396,5 @@ struct chunkiser_iface in_rtp = {
   .chunkise = rtp_chunkise,
   .get_fds = rtp_get_fds,
 };
+
+#pragma message "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"

@@ -95,6 +95,9 @@ chunkiser_test: LDLIBS += `pkg-config --libs gtk+-2.0`
 chunkiser_test: LDLIBS += `pkg-config --libs alsa`
 endif
 endif
+# Temporary compiling options for including pjlib. TODO: full makefile structure
+PJDIR = /home/davide/pj_install
+chunkiser_test: LDLIBS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --libs libpjproject)
 
 cloud_test: cloud_test.o net_helpers.o
 cloud_test: $(NET_HELPER).o

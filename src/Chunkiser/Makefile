@@ -37,3 +37,7 @@ output-stream-play.o: CPPFLAGS += `pkg-config --cflags gtk+-2.0`
 CPPFLAGS += -DGTK
 endif
 endif
+
+# Temporary compiling options for including pjlib. TODO: full makefile structure
+PJDIR = /home/davide/pj_install
+input-stream-rtp.o: CFLAGS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --cflags libpjproject) -DPJ_DEBUG -g
