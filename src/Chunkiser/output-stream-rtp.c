@@ -24,12 +24,11 @@
 #include "dechunkiser_iface.h"
 #include "stream-rtp.h"
 
-#define RTP_UDP_PORTS_NUM_MAX 2 * 5  // must be same as in input-stream-rtp.c
+#define RTP_UDP_PORTS_NUM_MAX (2 * 5)  // must be same as in input-stream-rtp.c
 #define IP_ADDR_LEN 16
 
 #ifdef _WIN32
-static int inet_aton(const char *cp, struct in_addr *addr)
-{
+static int inet_aton(const char *cp, struct in_addr *addr) {
     if( cp==NULL || addr==NULL )
     {
         return(0);
@@ -43,7 +42,7 @@ static int inet_aton(const char *cp, struct in_addr *addr)
 struct dechunkiser_ctx {
   int outfd;
   char ip[IP_ADDR_LEN];
-  int portss[RTP_UDP_PORTS_NUM_MAX + 1];
+  int ports[RTP_UDP_PORTS_NUM_MAX];
   int ports_len;
   int verbosity;
 };
@@ -63,14 +62,19 @@ static void printf_log(const struct dechunkiser_ctx *ctx, int loglevel,
     vfprintf(s, fmt, args);
     va_end(args);
     fprintf(s, "\n");
+    if (loglevel == 0) {
+      fflush(s);
+    }
+#ifdef DEBUG
     fflush(s);
+#endif
   }
 }
 
 
 /*
   Parses config and populates ctx accordingly.
-  Returns 1 on success, 0 on failure.
+  Returns 0 on success, nonzero on failure.
  */
 static int conf_parse(struct dechunkiser_ctx *ctx, const char *config) {
   int j;
@@ -81,10 +85,13 @@ static int conf_parse(struct dechunkiser_ctx *ctx, const char *config) {
   ctx->verbosity = 1;
   sprintf(ctx->ip, "127.0.0.1");
   ctx->ports_len = 0;
+  for (j=0; j<RTP_UDP_PORTS_NUM_MAX; j++) {
+    ctx->ports[j] = -1;
+  }
 
   if (!config) {
     printf_log(ctx, 0, "No output ports specified");
-    return 0;
+    return 1;
   }
 
   cfg_tags = config_parse(config);
@@ -101,20 +108,20 @@ static int conf_parse(struct dechunkiser_ctx *ctx, const char *config) {
     printf_log(ctx, 1, "Destination IP address: %s", ctx->ip);
 
     ctx->ports_len =
-      rtp_ports_parse(cfg_tags, ctx->portss, NULL, &error_str);
+      rtp_ports_parse(cfg_tags, ctx->ports, NULL, &error_str);
   }
   free(cfg_tags);
 
   if (ctx->ports_len == 0) {
     printf_log(ctx, 0, error_str);
-    return 0;
+    return 2;
   }
 
   for (j=0; j<ctx->ports_len; j++) {
-    printf_log(ctx, 1, "  Configured output port: %i", ctx->portss[j]);
+    printf_log(ctx, 1, "  Configured output port: %i", ctx->ports[j]);
   }
 
-  return 1;
+  return 0;
 }
 
 
@@ -126,7 +133,7 @@ static struct dechunkiser_ctx *udp_open_out(const char *fname, const char *confi
     return NULL;
   }
   
-  if (! conf_parse(res, config)) {
+  if (conf_parse(res, config) != 0) {
     free(res);
     return NULL;
   }
@@ -174,8 +181,8 @@ static void rtp_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, int si
 
     printf_log(ctx, 2,
                "sending packet of size %i from stream %i to port %i",
-               psize, stream, ctx->portss[stream]);
-    packet_write(ctx->outfd, ctx->ip, ctx->portss[stream], data, psize);
+               psize, stream, ctx->ports[stream]);
+    packet_write(ctx->outfd, ctx->ip, ctx->ports[stream], data, psize);
     data += psize;
   }
 }

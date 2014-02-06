@@ -27,8 +27,9 @@
 #include "stream-rtp.h"
 
 #define UDP_MAX_SIZE 65536   // 2^16
-//#define RTP_MAX_CHUNK_SIZE (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) * 50
-#define RTP_MAX_CHUNK_SIZE (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) + 20
+//#define RTP_DEFAULT_CHUNK_SIZE ((UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) * 50)
+#define RTP_DEFAULT_CHUNK_SIZE 20
+
 
 struct chunkiser_ctx {
   // fixed context (set at opening time)
@@ -63,13 +64,17 @@ static void printf_log(const struct chunkiser_ctx *ctx, int loglevel,
     vfprintf(s, fmt, args);
     va_end(args);
     fprintf(s, "\n");
+    if (loglevel == 0) {
+      fflush(s);
+    }
+#ifdef DEBUG
     fflush(s);
+#endif
   }
 }
 
 
-static int input_get_udp(uint8_t *data, int fd)
-{
+static int input_get_udp(uint8_t *data, int fd) {
   ssize_t msglen;
 
   msglen = recv(fd, data, UDP_MAX_SIZE, 0);
@@ -81,8 +86,7 @@ static int input_get_udp(uint8_t *data, int fd)
   return msglen;
 }
 
-static int listen_udp(const struct chunkiser_ctx *ctx, int port)
-{
+static int listen_udp(const struct chunkiser_ctx *ctx, int port) {
   struct sockaddr_in servaddr;
   int r;
   int fd;
@@ -122,21 +126,25 @@ static int listen_udp(const struct chunkiser_ctx *ctx, int port)
   Read config string `config`, updates `ctx` accordingly.
   Also open required UDP ports, so as to save their file descriptors
   in context.
-  Return nonzero on success, 0 on failure.
+  Return 0 on success, nonzero on failure.
  */
-static int conf_parse(struct chunkiser_ctx *ctx, const char *config)
-{
+static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
   int ports[RTP_UDP_PORTS_NUM_MAX + 1];
-  int ports_len;
   struct tag *cfg_tags;
   int i;
   const char *error_str;
+  int chunk_size;
+
 
   /* Default context values */
   ctx->video_stream_id = -1;
   ctx->rfc3551 = 0;
   ctx->verbosity = 1;
-  ctx->max_size = RTP_MAX_CHUNK_SIZE;
+  chunk_size = RTP_DEFAULT_CHUNK_SIZE;
+  ctx->max_size = chunk_size + UDP_MAX_SIZE;
+  for (i=0; i<RTP_UDP_PORTS_NUM_MAX + 1; i++) {
+    ports[i] = -1;
+  }
 
   /* Parse options */
   cfg_tags = config_parse(config);
@@ -148,9 +156,11 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config)
     printf_log(ctx, 2, "%ssing RFC 3551",
                (ctx->rfc3551 ? "U" : "Not u"));
     
-    // TODO: read max_chunk_size
-    printf_log(ctx, 2, "Maximum chunk size (in bytes) is %i", ctx->max_size);
-
+    if (config_value_int(cfg_tags, "chunk-size", &chunk_size)) {
+      ctx->max_size = chunk_size + UDP_MAX_SIZE;
+      printf_log(ctx, 2, "Chunk size (in bytes) is %d", chunk_size);
+      printf_log(ctx, 2, "Maximum chunk size (in bytes) is thus %d", ctx->max_size);
+    }
     
     ctx->fds_len =
       rtp_ports_parse(cfg_tags, ports, &(ctx->video_stream_id), &error_str);
@@ -159,7 +169,7 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config)
 
   if (ctx->fds_len == 0) {
     printf_log(ctx, 0, error_str);
-    return 0;
+    return 1;
   }
 
   /* Open ports */
@@ -170,20 +180,19 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config)
       for (; i>=0 ; i--) {
         close(ctx->fds[i]);
       }
-      return 0;
+      return 2;
     }
   }
   ctx->fds[i] = -1;
   if (i != ctx->fds_len) {
     printf_log(ctx, 0, "Something very wrong happended.");
-    return 0;
+    return 3;
   }
 
-  return 1;
+  return 0;
 }
 
-static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char *config)
-{
+static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char *config) {
   struct chunkiser_ctx *res;
   struct timeval tv;
 
@@ -192,7 +201,7 @@ static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char
     return NULL;
   }
 
-  if(conf_parse(res, config) == 0) {
+  if(conf_parse(res, config) != 0) {
     printf_log(res, 0, "Error while parsing input parameters.");
     free(res);
     return NULL;
@@ -234,8 +243,7 @@ static void rtp_close(struct chunkiser_ctx  *ctx)
 
   In case of error, return NULL and size=-1
  */
-static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint64_t *ts)
-{
+static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint64_t *ts) {
   int i, j;
   int status = 0;  // 0: Go on; 1: ready to send; -1: error
   uint8_t *res;

@@ -9,12 +9,12 @@
   (input-stream-rtp.c) and dechunkiser (output-stream-rtp.c)
  */
 
-#define RTP_UDP_PORTS_NUM_MAX 2 * 5  // each rtp stream takes 2 ports
+#define RTP_UDP_PORTS_NUM_MAX (2 * 5)  // each rtp stream takes 2 ports
 
 /*
   Given a config string that is either <port> or <port>:<port>,
   fills ports[0] (rtp port) and ports[1] (rtcp port) with integers.
-  Returns nonzero on success, 0 on failure.
+  Returns 0 on success, nonzero on failure.
  */
 static inline int port_pair_parse(const char *conf_str, int *ports) {
   char *ptr;
@@ -23,7 +23,7 @@ static inline int port_pair_parse(const char *conf_str, int *ports) {
   ptr = strchr(conf_str, ':');
   if (ptr == NULL) {
     if (sscanf(conf_str, "%d", &port) == EOF) {
-      return 0;
+      return 1;
     }
     //fprintf(stderr, "  Parsed single port: %u\n", port);
     // pedantic compliant with RFC 5330, section 11:
@@ -38,17 +38,18 @@ static inline int port_pair_parse(const char *conf_str, int *ports) {
   }
   else {
     if (sscanf(conf_str, "%d:%d", &ports[0], &ports[1]) == EOF) {
-      return 0;
+      return 1;
     }
     //fprintf(stderr, "  Parsed double ports %u:%u\n", ports[0], ports[1]);
   }
 
-  return 1;
+  return 0;
 }
 
 /*
-  Parses ports configuration: fills ports array ("-1"-terminated) and
-  returns the number of ports found.
+  Parses ports configuration: fills ports array and returns the number
+  of ports found. If any error occurrs, returns 0 (note that if no
+  ports are specified, it IS an error).
   If `video_stream_id` is not NULL, upon return it will contain the index
   of the video stream.
  */
@@ -69,7 +70,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
     sprintf(tag, "stream%d", j);
     val = config_value_str(cfg_tags, tag);
     if (val != NULL) {
-      if (! port_pair_parse(val, &ports[i])) {
+      if (port_pair_parse(val, &ports[i]) != 0) {
         *error_str = port_pair_failed;
         return 0;
       }
@@ -83,7 +84,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
   if (i == 0) {
     val = config_value_str(cfg_tags, "audio");
     if (val != NULL) {
-      if (! port_pair_parse(val, &ports[i])) {
+      if (port_pair_parse(val, &ports[i]) != 0) {
         *error_str = port_pair_failed;
         return 0;
       }
@@ -91,7 +92,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
     }
     val = config_value_str(cfg_tags, "video");
     if (val != NULL) {
-      if (! port_pair_parse(val, &ports[i])) {
+      if (port_pair_parse(val, &ports[i]) != 0) {
         *error_str = port_pair_failed;
         return 0;
       }
@@ -121,8 +122,6 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
       return 0;
     }
   }
-  // port array terminator
-  ports[i] = -1;
 
   if (i == 0) {
     *error_str = "No listening port specified";
