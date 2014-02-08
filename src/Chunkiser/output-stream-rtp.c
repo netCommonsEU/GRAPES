@@ -24,7 +24,6 @@
 #include "dechunkiser_iface.h"
 #include "stream-rtp.h"
 
-#define RTP_UDP_PORTS_NUM_MAX (2 * 5)  // must be same as in input-stream-rtp.c
 #define IP_ADDR_LEN 16
 
 #ifdef _WIN32
@@ -169,6 +168,7 @@ static void rtp_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, int si
   data += RTP_PAYLOAD_FIXED_HEADER_SIZE;
   printf_log(ctx, 2, "Got chunk with %i packets", i);
   for (; i > 0; i--) {
+    // NOTE: `stream` here is the index in the ports array.
     int stream, psize;
 
     rtp_payload_per_pkt_header_parse(data, &psize, &stream);
@@ -180,7 +180,7 @@ static void rtp_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, int si
     }
 
     printf_log(ctx, 2,
-               "sending packet of size %i from stream %i to port %i",
+               "sending packet of size %i from port id #%i to port %i",
                psize, stream, ctx->ports[stream]);
     packet_write(ctx->outfd, ctx->ip, ctx->ports[stream], data, psize);
     data += psize;

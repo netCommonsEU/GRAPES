@@ -9,7 +9,8 @@
   (input-stream-rtp.c) and dechunkiser (output-stream-rtp.c)
  */
 
-#define RTP_UDP_PORTS_NUM_MAX (2 * 5)  // each rtp stream takes 2 ports
+#define RTP_STREAMS_NUM_MAX 5
+#define RTP_UDP_PORTS_NUM_MAX (2 * RTP_STREAMS_NUM_MAX)
 
 /*
   Given a config string that is either <port> or <port>:<port>,
@@ -52,6 +53,7 @@ static inline int port_pair_parse(const char *conf_str, int *ports) {
   ports are specified, it IS an error).
   If `video_stream_id` is not NULL, upon return it will contain the index
   of the video stream.
+  In case an error occurrs, 0 is returned and `error_str` pointed to a message
  */
 static inline int rtp_ports_parse(const struct tag *cfg_tags,
                                   int ports[RTP_UDP_PORTS_NUM_MAX + 1],
@@ -64,7 +66,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
     "Wrong format for port input: should be <port> or <rtp_port>:<rtcp_port>";
 
   /* Ports defined with explicit stream numbers */
-  for (j = 0; j < RTP_UDP_PORTS_NUM_MAX / 2; j++) {
+  for (j = 0; j < RTP_STREAMS_NUM_MAX; j++) {
     char tag[8];
 
     sprintf(tag, "stream%d", j);

@@ -20,6 +20,11 @@
 #include <string.h>
 #include <stdarg.h>
 
+#ifndef RTP_DEBUG
+#define NDEBUG
+#endif
+#include <assert.h>
+
 #include "int_coding.h"
 #include "payload.h"
 #include "config.h"
@@ -33,8 +38,6 @@
 
 struct chunkiser_ctx {
   // fixed context (set at opening time)
-  int fds[RTP_UDP_PORTS_NUM_MAX + 1];
-  int fds_len;  // even if "-1"-terminated, save length to make things easier
   int id;                 // TODO:  What is this for?? Is it needed?
   uint64_t start_time;    // TODO:  What is this for?? Is it needed?
   int every;              // ?? Not sure if this is really needed and how to use it
@@ -42,6 +45,8 @@ struct chunkiser_ctx {
   int video_stream_id;
   int rfc3551;
   int verbosity;
+  int fds[RTP_UDP_PORTS_NUM_MAX + 1];
+  int fds_len;  // even if "-1"-terminated, save length to make things easier
   // running context (set at chunkising time)
   uint8_t *buff;          // chunk buffer
   int size;               // its current size
@@ -78,7 +83,6 @@ static int input_get_udp(uint8_t *data, int fd) {
   ssize_t msglen;
 
   msglen = recv(fd, data, UDP_MAX_SIZE, 0);
-  // TODO: how mush space is left in buffer??
   if (msglen <= 0) {
     return 0;
   }
@@ -117,7 +121,6 @@ static int listen_udp(const struct chunkiser_ctx *ctx, int port) {
   }
   printf_log(ctx, 2, "  opened fd:%d for port:%d", fd, port);
 
-
   return fd;
 }
 
@@ -132,12 +135,11 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
   int ports[RTP_UDP_PORTS_NUM_MAX + 1];
   struct tag *cfg_tags;
   int i;
-  const char *error_str;
+  const char *error_str = NULL;
   int chunk_size;
 
-
   /* Default context values */
-  ctx->video_stream_id = -1;
+  ctx->video_stream_id = -2;
   ctx->rfc3551 = 0;
   ctx->verbosity = 1;
   chunk_size = RTP_DEFAULT_CHUNK_SIZE;
@@ -158,12 +160,17 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
     
     if (config_value_int(cfg_tags, "chunk-size", &chunk_size)) {
       ctx->max_size = chunk_size + UDP_MAX_SIZE;
-      printf_log(ctx, 2, "Chunk size (in bytes) is %d", chunk_size);
-      printf_log(ctx, 2, "Maximum chunk size (in bytes) is thus %d", ctx->max_size);
-    }
-    
+    } 
+    printf_log(ctx, 2, "Chunk size (in bytes) is %d", chunk_size);
+    printf_log(ctx, 2, "Maximum chunk size (in bytes) is thus %d", ctx->max_size);
+   
     ctx->fds_len =
       rtp_ports_parse(cfg_tags, ports, &(ctx->video_stream_id), &error_str);
+
+    if (ctx->rfc3551) {
+      printf_log(ctx, 2, "The video stream for RFC 3551 is the one on ports %d:%d",
+                 ports[ctx->video_stream_id], ports[ctx->video_stream_id+1]);
+    }
   }
   free(cfg_tags);
 
@@ -223,8 +230,7 @@ static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char
   return res;
 }
 
-static void rtp_close(struct chunkiser_ctx  *ctx)
-{
+static void rtp_close(struct chunkiser_ctx  *ctx) {
   int i;
 
   for (i = 0; ctx->fds[i] >= 0; i++) {
@@ -244,7 +250,7 @@ static void rtp_close(struct chunkiser_ctx  *ctx)
   In case of error, return NULL and size=-1
  */
 static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint64_t *ts) {
-  int i, j;
+  int j;
   int status = 0;  // 0: Go on; 1: ready to send; -1: error
   uint8_t *res;
 
@@ -255,33 +261,40 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
       rtp_payload_header_init(ctx->buff);
     }
     else {
-      printf_log(ctx, 1, "Could not alloccate chunk buffer.");
+      printf_log(ctx, 0, "Could not alloccate chunk buffer.");
       *size = -1;
       status = -1;
     }
   }
   for (j = 0; j < ctx->fds_len && status == 0; j++) {
-    i = (ctx->next_fd + j) % ctx->fds_len;
-    if ((ctx->max_size - ctx->size)                          // available buffer
-          < (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) // max pkt size
-    ) {
-      // Not enough space left in buffer: send chunk
-      printf_log(ctx, 2,
-                 "Sending chunk: almost maximum size reached (%i over %i)",
-                 ctx->size, ctx->max_size);
-      status = 1;
-      ctx->next_fd = i;
-    }
-    else {
-      int new_pkt_size;
-      new_pkt_size = input_get_udp(
-        ctx->buff + ctx->size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE,
-        ctx->fds[i]
-      );
-      if (new_pkt_size) {
-        rtp_payload_per_pkt_header_set(ctx->buff, ctx->size, new_pkt_size, i);
-        ctx->size += new_pkt_size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE;
-        printf_log(ctx, 2, "Got UDP message with size %i", new_pkt_size);
+    int i = (ctx->next_fd + j) % ctx->fds_len;
+    int new_pkt_size;
+    uint8_t *new_pkt_start =
+      ctx->buff + ctx->size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE;
+
+    assert((ctx->max_size - ctx->size)
+           >= (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE));
+
+    new_pkt_size = input_get_udp(new_pkt_start, ctx->fds[i]);
+    if (new_pkt_size) {
+      printf_log(ctx, 2, "Got UDP message of size %d from port id #%d",
+                 new_pkt_size, i);
+      if (i % 2 == 0) {  // RTP packet
+        printf_log(ctx, 2, "  -> RTP packet");
+      }
+      else {  // RTCP packet
+        printf_log(ctx, 2, "  -> RTCP packet");
+      }
+      rtp_payload_per_pkt_header_set(ctx->buff, ctx->size, new_pkt_size, i);
+      ctx->size += new_pkt_size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE;
+
+      if ((ctx->max_size - ctx->size)
+          < (UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE)
+      ) {  // Not enough space left in buffer: send chunk
+        printf_log(ctx, 2, "Buffer size reached: (%d over %d - max %d)",
+                   ctx->size, ctx->max_size - UDP_MAX_SIZE, ctx->max_size);
+        status = 1;
+        ctx->next_fd = i;
       }
     }
   }
