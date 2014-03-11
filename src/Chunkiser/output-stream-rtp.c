@@ -64,7 +64,7 @@ static void printf_log(const struct dechunkiser_ctx *ctx, int loglevel,
     if (loglevel == 0) {
       fflush(s);
     }
-#ifdef DEBUG
+#ifdef RTP_DEBUG
     fflush(s);
 #endif
   }
