@@ -46,7 +46,6 @@ struct dechunkiser_ctx {
   int verbosity;
 };
 
-
 /* Define a printf-like function for logging */
 static void printf_log(const struct dechunkiser_ctx *ctx, int loglevel,
                        const char *fmt, ...) {
@@ -124,7 +123,7 @@ static int conf_parse(struct dechunkiser_ctx *ctx, const char *config) {
 }
 
 
-static struct dechunkiser_ctx *udp_open_out(const char *fname, const char *config) {
+static struct dechunkiser_ctx *rtp_open_out(const char *fname, const char *config) {
   struct dechunkiser_ctx *res;
 
   res = malloc(sizeof(struct dechunkiser_ctx));
@@ -164,10 +163,9 @@ static void packet_write(int fd, const char *ip, int port, uint8_t *data, int si
 
 
 static void rtp_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, int size) {
-  int i = rtp_payload_header_parse(data);
-  data += RTP_PAYLOAD_FIXED_HEADER_SIZE;
-  printf_log(ctx, 2, "Got chunk with %i packets", i);
-  for (; i > 0; i--) {
+  uint8_t* data_end = data + size;
+  printf_log(ctx, 2, "Got chunk of size %i", size);
+  while (data < data_end) {
     // NOTE: `stream` here is the index in the ports array.
     int stream, psize;
 
@@ -193,7 +191,7 @@ static void rtp_close(struct dechunkiser_ctx *ctx) {
 }
 
 struct dechunkiser_iface out_rtp = {
-  .open = udp_open_out,
+  .open = rtp_open_out,
   .write = rtp_write,
   .close = rtp_close,
 };

@@ -8,7 +8,6 @@
 #define VIDEO_PAYLOAD_HEADER_SIZE 1 + 2 + 2 + 2 + 2 + 1 // 1 Frame type + 2 width + 2 height + 2 frame rate num + 2 frame rate den + 1 number of frames
 #define FRAME_HEADER_SIZE (3 + 4 + 1)	// 3 Frame size + 4 PTS + 1 DeltaTS
 #define UDP_PAYLOAD_HEADER_SIZE (2 + 1)   // 2 size + 1 stream
-#define RTP_PAYLOAD_FIXED_HEADER_SIZE 2
 #define RTP_PAYLOAD_PER_PKT_HEADER_SIZE (2 + 1)   // 2 size + 1 stream
 
 static inline void frame_header_parse(const uint8_t *data, int *size, int64_t *pts, int64_t *dts)
@@ -91,8 +90,6 @@ static inline void udp_payload_header_write(uint8_t *data, int size, uint8_t str
 
 /* RTP chunk payload format:
    0    1    2    3
-   +---------+
-   |  n      |
    +----+----+----+-------------
    |  size   |s_id| data (UDP payload, with RTP header)
    +---------+----+-------------
@@ -100,32 +97,17 @@ static inline void udp_payload_header_write(uint8_t *data, int size, uint8_t str
    +---------+------------------
    |  size   |s_id| data ... 
    +---------+----+-------------
-   n: number of rows (16 bits)
    size: size of the following `data` field (16 bits)
    s_id: stream identifier (8 bits)
  */
 
-static inline void rtp_payload_header_init(uint8_t *payload) {
-  // Set the number of RTP packets to zero
-  int16_cpy(payload, (uint16_t) 0);
-}
-
-static inline void rtp_payload_per_pkt_header_set(uint8_t *payload, int pkt_header_offset, uint16_t size, uint8_t stream) {
-  uint16_t num;
-  // Increment `n`
-  num = int16_rcpy(payload);
-  int16_cpy(payload, num + 1);
-  // Fill new header
-  int16_cpy(payload + pkt_header_offset, size);
-  *(payload +  pkt_header_offset + 2) = stream;
-}
-
-static inline int rtp_payload_header_parse(uint8_t *payload) {
-  return int16_rcpy(payload);
+static inline void rtp_payload_per_pkt_header_set(uint8_t *data, uint16_t size, uint8_t stream) {
+  int16_cpy(data, size);
+  *(data + 2) = stream;
 }
 
 static inline void rtp_payload_per_pkt_header_parse(uint8_t *data, int *size, int *stream)
 {
   *size = int16_rcpy(data);
-  *stream = data[2]; 
+  *stream = *(data + 2); 
 }

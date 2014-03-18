@@ -95,7 +95,6 @@ chunkiser_test: LDLIBS += `pkg-config --libs gtk+-2.0`
 chunkiser_test: LDLIBS += `pkg-config --libs alsa`
 endif
 endif
-
 ifdef PJDIR
 chunkiser_test: LDLIBS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --libs libpjproject)
 endif

@@ -46,7 +46,6 @@
 #define TS_FRACT_MASK ((1ULL << TS_SHIFT) - 1)
 
 #define UDP_MAX_SIZE 65536   // 2^16
-//#define RTP_DEFAULT_CHUNK_SIZE ((UDP_MAX_SIZE + RTP_PAYLOAD_PER_PKT_HEADER_SIZE) * 50)
 //#define RTP_DEFAULT_CHUNK_SIZE 20
 #define RTP_DEFAULT_CHUNK_SIZE 65536
 #define RTP_DEFAULT_MAX_DELAY (1ULL << TS_SHIFT)  // 1 s
@@ -372,7 +371,7 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
     printf_log(ctx, 2, "%ssing RFC 3551",
                (ctx->rfc3551 ? "U" : "Not u"));
     
-    if (config_value_int(cfg_tags, "chunk-size", &chunk_size)) {
+    if (config_value_int(cfg_tags, "chunk_size", &chunk_size)) {
       ctx->max_size = chunk_size + UDP_MAX_SIZE;
     } 
     printf_log(ctx, 2, "Chunk size is %d bytes", chunk_size);
@@ -496,11 +495,7 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
   if (ctx->buff == NULL) {
     ctx->buff = malloc(ctx->max_size);
     ctx->ntp_ts_status = 0;
-    if (ctx->buff != NULL) {
-      ctx->size = RTP_PAYLOAD_FIXED_HEADER_SIZE;
-      rtp_payload_header_init(ctx->buff);
-    }
-    else {
+    if (ctx->buff == NULL) {
       printf_log(ctx, 0, "Could not alloccate chunk buffer: exiting.");
       *size = -1;
       return NULL;
@@ -549,7 +544,7 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
 		printf_log(ctx, 2, "  Max delay reached: %.0f over %.0f ms",
 			   (ctx->max_ntp_ts - ctx->min_ntp_ts) * 1000.0 / (1ULL << TS_SHIFT),
 			   ctx->max_delay * 1000.0 / (1ULL << TS_SHIFT));
-		status = 1;
+		status = ((status > 1) ? status : 1); // status = max(status, 1)
 	      }
             }
             // Marker bit semantic for video stream in rfc3551
@@ -563,7 +558,7 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
           rtcp_packet_received(ctx, i/2, new_pkt_start, new_pkt_size);
         }
         // append packet to chunk
-        rtp_payload_per_pkt_header_set(ctx->buff, ctx->size, new_pkt_size, i);
+        rtp_payload_per_pkt_header_set(ctx->buff + ctx->size, new_pkt_size, i);
         ctx->size += new_pkt_size + RTP_PAYLOAD_PER_PKT_HEADER_SIZE;
 
         if ((ctx->max_size - ctx->size)
