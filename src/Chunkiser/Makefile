@@ -9,7 +9,6 @@ OBJS = input-stream.o           \
        input-stream-dummy.o     \
        input-stream-dumb.o      \
        input-stream-udp.o       \
-       input-stream-rtp.o       \
        output-stream.o          \
        output-stream-raw.o      \
        output-stream-udp.o      \
@@ -21,6 +20,10 @@ OBJS += input-stream-avf.o output-stream-avf.o
 ifdef GTK
 OBJS += output-stream-play.o
 endif
+endif
+
+ifdef PJDIR
+OBJS += input-stream-rtp.o
 endif
 
 all: libchunkiser.a
@@ -38,6 +41,7 @@ CPPFLAGS += -DGTK
 endif
 endif
 
-# Temporary compiling options for including pjlib. TODO: full makefile structure
-PJDIR = /home/davide/pj_install
-input-stream-rtp.o: CFLAGS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --cflags libpjproject) -DPJ_DEBUG -g
+ifdef PJDIR
+input-stream-rtp.o: CFLAGS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --cflags libpjproject)
+input-stream-rtp.o: CFLAGS += -g -DRTP_DEBUG -DPJ_DEBUG
+endif
