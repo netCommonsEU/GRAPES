@@ -297,12 +297,25 @@ struct nodeID *nodeid_dup(struct nodeID *s)
 
 int nodeid_equal(const struct nodeID *s1, const struct nodeID *s2)
 {
-  return (memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_storage)) == 0);
+	return (nodeid_cmp(s1,s2) == 0);
+//  return (memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_storage)) == 0);
 }
 
 int nodeid_cmp(const struct nodeID *s1, const struct nodeID *s2)
 {
-  return memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_storage));
+	char ip1[80], ip2[80];
+	int port1,port2;
+	port1=node_port(s1);
+	port2=node_port(s2);
+	node_ip(s1,ip1,80);
+	node_ip(s2,ip2,80);
+
+//	int res = (port1^port2)|strcmp(ip1,ip2);
+//	fprintf(stderr,"Comparing %s:%d and %s:%d\n",ip1,port1,ip2,port2);
+//	fprintf(stderr,"Result: %d\n",res);
+
+	return (port1^port2)|strcmp(ip1,ip2);
+//  return memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_storage));
 }
 
 int nodeid_dump(uint8_t *b, const struct nodeID *s, size_t max_write_size)
