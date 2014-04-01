@@ -180,7 +180,7 @@ struct my_hdr_t {
   uint8_t frags;
 } __attribute__((packed));
 
-int send_to_peer(const struct nodeID *from, struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size)
+int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size)
 {
   struct msghdr msg = {0};
   static struct my_hdr_t my_hdr;
@@ -283,7 +283,7 @@ int node_addr(const struct nodeID *s, char *addr, int len)
   return n;
 }
 
-struct nodeID *nodeid_dup(struct nodeID *s)
+struct nodeID *nodeid_dup(const struct nodeID *s)
 {
   struct nodeID *res;
 

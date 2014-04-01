@@ -25,7 +25,7 @@ struct nodeID;
 * @param[in] s A pointer to the nodeID to be duplicated.
 * @return A pointer to the duplicate of the argument nodeID.
 */
-struct nodeID *nodeid_dup(struct nodeID *s);
+struct nodeID *nodeid_dup(const struct nodeID *s);
 
 /**
 * @brief Test if two nodes are identical.
@@ -96,7 +96,7 @@ void bind_msg_type(uint8_t msgtype);
 * @param[in] buffer_size The length of the data buffer.
 * @return The number of bytes sent or -1 if some error occurred.
 */
-int send_to_peer(const struct nodeID *from, struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size);
+int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size);
 
 /**
 * @brief Receive data from a remote peer.

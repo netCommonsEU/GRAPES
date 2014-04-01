@@ -88,7 +88,7 @@ struct peerset *peerset_init(const char *config)
   return p;
 }
 
-int peerset_add_peer(struct peerset *h, struct nodeID *id)
+int peerset_add_peer(struct peerset *h,const  struct nodeID *id)
 {
   struct peer *e;
   int pos;
