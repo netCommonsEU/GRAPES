@@ -304,7 +304,7 @@ int nodeid_equal(const struct nodeID *s1, const struct nodeID *s2)
 int nodeid_cmp(const struct nodeID *s1, const struct nodeID *s2)
 {
 	char ip1[80], ip2[80];
-	int port1,port2;
+	int port1,port2,res;
 	port1=node_port(s1);
 	port2=node_port(s2);
 	node_ip(s1,ip1,80);
@@ -313,8 +313,12 @@ int nodeid_cmp(const struct nodeID *s1, const struct nodeID *s2)
 //	int res = (port1^port2)|strcmp(ip1,ip2);
 //	fprintf(stderr,"Comparing %s:%d and %s:%d\n",ip1,port1,ip2,port2);
 //	fprintf(stderr,"Result: %d\n",res);
+	res  = strcmp(ip1,ip2);
+	if (res!=0)
+		return res;
+	else
+		return port1-port2;
 
-	return (port1^port2)|strcmp(ip1,ip2);
 //  return memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_storage));
 }
 
