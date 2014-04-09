@@ -42,7 +42,8 @@ endif
 endif
 
 ifdef PJDIR
-input-stream-rtp.o: CFLAGS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --cflags libpjproject)
+#input-stream-rtp.o: CFLAGS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --cflags libpjproject)
+input-stream-rtp.o: CFLAGS += $(shell cat $(PJDIR)/CFLAGS)
 input-stream-rtp.o: CFLAGS += -g -DRTP_DEBUG -DPJ_DEBUG
 CPPFLAGS += -DRTP
 endif
