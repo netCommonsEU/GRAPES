@@ -1,4 +1,5 @@
 /*
+ *  Copyright (c) 2010 Csaba Kiraly
  *  Copyright (c) 2014 Davide Kirchner
  *
  *  This is free software; see gpl-3.0.txt
@@ -130,7 +131,7 @@ static struct dechunkiser_ctx *rtp_open_out(const char *fname, const char *confi
   if (res == NULL) {
     return NULL;
   }
-  
+
   if (conf_parse(res, config) != 0) {
     free(res);
     return NULL;

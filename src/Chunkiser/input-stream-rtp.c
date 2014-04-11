@@ -1,4 +1,5 @@
 /*
+ *  Copyright (c) 2010 Csaba Kiraly
  *  Copyright (c) 2014 Davide Kirchner
  *
  *  This is free software; see gpl-3.0.txt
@@ -48,7 +49,7 @@
 #define UDP_MAX_SIZE 65536   // 2^16
 //#define RTP_DEFAULT_CHUNK_SIZE 20
 #define RTP_DEFAULT_CHUNK_SIZE 65536
-#define RTP_DEFAULT_MAX_DELAY (1ULL << TS_SHIFT)  // 1 s
+#define RTP_DEFAULT_MAX_DELAY (1ULL << (TS_SHIFT-2))  // 250 ms
 
 struct rtp_ntp_ts {
   // both in HOST byte order
@@ -65,9 +66,8 @@ struct rtp_stream {
 
 struct chunkiser_ctx {
   // fixed context (set at opening time)
-  int id;                 // TODO:  What is this for?? Is it needed?
   uint64_t start_time;    // TODO:  What is this for?? Is it needed?
-  int every;              // ?? Not sure if this is really needed and how to use it
+                          // (it was there un UDP chunkiser)
   int max_size;           // max `buff` size
   uint64_t max_delay;     // max delay to accumulate in a chunk [ntp format]
   int video_stream_id;    // index in `streams`
@@ -118,7 +118,7 @@ static void printf_log(const struct chunkiser_ctx *ctx, int loglevel,
 }
 
 
-/* SUPPORT FUNCTIONS FOR RTP LIBRARY MANAGEMENT */
+/* SUPPORT FUNCTIONS FOR TIMESTAMPS MANAGEMENT AND CONVERSIONS */
 
 /* Multiplies 2 uint64_t, returning 0 and logging error on overflow */
 static inline uint64_t mult_overflow(const struct chunkiser_ctx *ctx, uint64_t a, uint64_t b) {
@@ -140,30 +140,6 @@ static inline uint64_t mult_overflow(const struct chunkiser_ctx *ctx, uint64_t a
     }
   }
   return res;
-}
-
-/* Returns 0 on success, nonzero on failure */
-static int rtplib_init(struct chunkiser_ctx *ctx) {
-  int i;
-  struct pjmedia_rtp_session_setting rtp_s;
-  struct pjmedia_rtcp_session_setting rtcp_s;
-
-  pj_init();
-
-  rtp_s.flags = 0;
-  pjmedia_rtcp_session_setting_default(&rtcp_s);
-  rtcp_s.clock_rate = 1;  // Just to avoid Floating point exception
-  for (i=0; i<ctx->fds_len/2; i++) {
-    pjmedia_rtcp_init2(&ctx->streams[i].rtcp, &rtcp_s);
-    if (pjmedia_rtp_session_init2(&ctx->streams[i].rtp, rtp_s) != PJ_SUCCESS) {
-      printf_log(ctx, 0, "Error initialising pjmedia RTP session");
-      return 1;
-    }
-    ctx->streams[i].last_updated_ts = 0;
-    ctx->streams[i].tss[0].ntp = ctx->streams[i].tss[0].rtp = 0;
-    ctx->streams[i].tss[1].ntp = ctx->streams[i].tss[1].rtp = 0;
-  }
-  return 0;
 }
 
 
@@ -227,7 +203,34 @@ static uint64_t ts_max(uint64_t a, uint64_t b) {
 }
 
 
-/* Fills `info` with the information extracted from the RTP packet. */
+/* SUPPORT FUNCTIONS FOR RTP LIBRARY MANAGEMENT */
+
+/* Initializes PJSIP. Returns 0 on success, nonzero on failure */
+static int rtplib_init(struct chunkiser_ctx *ctx) {
+  int i;
+  struct pjmedia_rtp_session_setting rtp_s;
+  struct pjmedia_rtcp_session_setting rtcp_s;
+
+  pj_init();
+
+  rtp_s.flags = 0;
+  pjmedia_rtcp_session_setting_default(&rtcp_s);
+  rtcp_s.clock_rate = 1;  // Just to avoid Floating point exception
+  for (i=0; i<ctx->fds_len/2; i++) {
+    pjmedia_rtcp_init2(&ctx->streams[i].rtcp, &rtcp_s);
+    if (pjmedia_rtp_session_init2(&ctx->streams[i].rtp, rtp_s) != PJ_SUCCESS) {
+      printf_log(ctx, 0, "Error initialising pjmedia RTP session");
+      return 1;
+    }
+    ctx->streams[i].last_updated_ts = 0;
+    ctx->streams[i].tss[0].ntp = ctx->streams[i].tss[0].rtp = 0;
+    ctx->streams[i].tss[1].ntp = ctx->streams[i].tss[1].rtp = 0;
+  }
+  return 0;
+}
+
+
+/* Inspects the given RTP packet and fills `info` accordingly. */
 static void rtp_packet_received(struct chunkiser_ctx *ctx, int stream_id, uint8_t *pkt, int size, struct rtp_info *info) {
   const struct pjmedia_rtp_hdr *rtp_h;
   const void *rtp_p;
@@ -255,6 +258,7 @@ static void rtp_packet_received(struct chunkiser_ctx *ctx, int stream_id, uint8_
 }
 
 
+/* Updates the context upon reception of RTCP packets. */
 static void rtcp_packet_received(struct chunkiser_ctx *ctx, int stream_id, uint8_t *pkt, int size) {
   struct rtp_stream *stream = &ctx->streams[stream_id];
   printf_log(ctx, 2, "  -> RTCP packet");
@@ -299,6 +303,7 @@ static int input_get_udp(uint8_t *data, int fd) {
   return msglen;
 }
 
+
 static int listen_udp(const struct chunkiser_ctx *ctx, int port) {
   struct sockaddr_in servaddr;
   int r;
@@ -334,7 +339,7 @@ static int listen_udp(const struct chunkiser_ctx *ctx, int port) {
 }
 
 
-/* SUPPORT FUNCTIONS FOR CONFIGURATION */
+/* SUPPORT FUNCTIONS FOR COMMAND-LINE CONFIGURATION */
 
 /*
   Read config string `config`, updates `ctx` accordingly.
@@ -370,10 +375,10 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
     config_value_int(cfg_tags, "rfc3551", &(ctx->rfc3551));
     printf_log(ctx, 2, "%ssing RFC 3551",
                (ctx->rfc3551 ? "U" : "Not u"));
-    
+
     if (config_value_int(cfg_tags, "chunk_size", &chunk_size)) {
       ctx->max_size = chunk_size + UDP_MAX_SIZE;
-    } 
+    }
     printf_log(ctx, 2, "Chunk size is %d bytes", chunk_size);
     printf_log(ctx, 2, "Maximum chunk size is thus %d bytes", ctx->max_size);
 
@@ -391,7 +396,7 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
 
     if (ctx->rfc3551) {
       printf_log(ctx, 2,
-		 "The video stream for RFC 3551 is the one on ports %d:%d",
+                 "The video stream for RFC 3551 is the one on ports %d:%d",
                  ports[ctx->video_stream_id], ports[ctx->video_stream_id+1]);
     }
   }
@@ -439,7 +444,7 @@ static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char
     free(res);
     return NULL;
   }
-  printf_log(res, 2, "Parameter parsing was successful.");  
+  printf_log(res, 2, "Parameter parsing was successful.");
 
   if (rtplib_init(res) != 0) {
     free(res);
@@ -448,9 +453,7 @@ static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char
 
   gettimeofday(&tv, NULL);
   res->start_time = tv.tv_usec + tv.tv_sec * 1000000ULL;
-  res->id = 1;
 
-  res->every = 1;
   res->buff = NULL;
   res->size = 0;
   res->counter = 0;
@@ -460,6 +463,7 @@ static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char
 
   return res;
 }
+
 
 static void rtp_close(struct chunkiser_ctx  *ctx) {
   int i;
@@ -473,15 +477,16 @@ static void rtp_close(struct chunkiser_ctx  *ctx) {
   free(ctx);
 }
 
+
 /*
-  Creates a chunk.  If the chunk is created, returns a pointer to an
-  alloccated memory buffer to chunk content if the chunk was created.
-  The caller should `free` it up.  In this case, size and ts are set
-  to the chunk's size and timestamp.
+  Creates a chunk.  If the chunk is created successfully, returns a
+  pointer to an alloccated memory buffer to chunk content.  The caller
+  should `free` it up.  In this case, size and ts are set to the
+  chunk's size and timestamp.
 
   If no data is available, returns NULL and size=0
 
-  In case of error, return NULL and size=-1
+  In case of error, returns NULL and size=-1
  */
 static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint64_t *ts) {
   int status;  // -1: buffer full, send now
@@ -523,7 +528,7 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
           if (info.valid) {
             printf_log(ctx, 2, "  packet has NTP timestamp (seconds) %llu",
                        info.ntp_ts >> TS_SHIFT);
-	    // update chunk timestamp
+            // update chunk timestamp
             if (info.ntp_ts == 0ULL) {
               // packet with unknown ts, ignore all timestamps
               ctx->ntp_ts_status = -1;
@@ -540,12 +545,12 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
                 ctx->max_ntp_ts = ts_max(ctx->max_ntp_ts, info.ntp_ts);
                 break;
               }
-	      if ((ctx->max_ntp_ts - ctx->min_ntp_ts) >= ctx->max_delay) {
-		printf_log(ctx, 2, "  Max delay reached: %.0f over %.0f ms",
-			   (ctx->max_ntp_ts - ctx->min_ntp_ts) * 1000.0 / (1ULL << TS_SHIFT),
-			   ctx->max_delay * 1000.0 / (1ULL << TS_SHIFT));
-		status = ((status > 1) ? status : 1); // status = max(status, 1)
-	      }
+              if ((ctx->max_ntp_ts - ctx->min_ntp_ts) >= ctx->max_delay) {
+                printf_log(ctx, 2, "  Max delay reached: %.0f over %.0f ms",
+                           (ctx->max_ntp_ts - ctx->min_ntp_ts) * 1000.0 / (1ULL << TS_SHIFT),
+                           ctx->max_delay * 1000.0 / (1ULL << TS_SHIFT));
+                status = ((status > 1) ? status : 1); // status = max(status, 1)
+              }
             }
             // Marker bit semantic for video stream in rfc3551
             if (ctx->rfc3551 && i/2 == ctx->video_stream_id && !info.marker) {
@@ -583,7 +588,7 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
     *size = ctx->size;
     gettimeofday(&now, NULL);
     *ts = now.tv_sec * 1000000ULL + now.tv_usec;
-    ctx->counter++; 
+    ctx->counter++;
     ctx->buff = NULL;
     ctx->size = 0;
     printf_log(ctx, 2, "Chunk created: size %i, timestamp %lli", *size, *ts);
@@ -592,9 +597,11 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
   return res;
 }
 
+
 const int *rtp_get_fds(const struct chunkiser_ctx *ctx) {
   return ctx->fds;
 }
+
 
 struct chunkiser_iface in_rtp = {
   .open = rtp_open,
@@ -602,6 +609,7 @@ struct chunkiser_iface in_rtp = {
   .chunkise = rtp_chunkise,
   .get_fds = rtp_get_fds,
 };
+
 
 #ifdef RTP_DEBUG
 #pragma message "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"

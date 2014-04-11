@@ -91,14 +91,16 @@ static inline void udp_payload_header_write(uint8_t *data, int size, uint8_t str
 /* RTP chunk payload format:
    0    1    2    3
    +----+----+----+-------------
-   |  size   |s_id| data (UDP payload, with RTP header)
+   |  size   |s_id| data (RTP packet with header)
    +---------+----+-------------
    |  ...
    +---------+------------------
-   |  size   |s_id| data ... 
+   |  size   |s_id| data ...
    +---------+----+-------------
    size: size of the following `data` field (16 bits)
    s_id: stream identifier (8 bits)
+   There's no need to carry total number of packets, because total length
+   is known at dechunkising time
  */
 
 static inline void rtp_payload_per_pkt_header_set(uint8_t *data, uint16_t size, uint8_t stream) {
@@ -109,5 +111,5 @@ static inline void rtp_payload_per_pkt_header_set(uint8_t *data, uint16_t size, 
 static inline void rtp_payload_per_pkt_header_parse(uint8_t *data, int *size, int *stream)
 {
   *size = int16_rcpy(data);
-  *stream = *(data + 2); 
+  *stream = *(data + 2);
 }

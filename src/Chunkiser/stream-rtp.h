@@ -9,7 +9,7 @@
   (input-stream-rtp.c) and dechunkiser (output-stream-rtp.c)
  */
 
-#define RTP_STREAMS_NUM_MAX 5
+#define RTP_STREAMS_NUM_MAX 10
 #define RTP_UDP_PORTS_NUM_MAX (2 * RTP_STREAMS_NUM_MAX)
 
 /*
@@ -117,7 +117,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
     }
   }
   // No port can be negative
-  for (j = 0; j < i; j ++) {  
+  for (j = 0; j < i; j ++) {
     if (ports[j] < 0) {
       //printf_log(ctx, 0, "Negative ports (like %i) are not allowed", ports[j]);
       *error_str = "Negative ports not allowed";
