@@ -12,6 +12,7 @@ OBJS = input-stream.o           \
        output-stream.o          \
        output-stream-raw.o      \
        output-stream-udp.o      \
+       output-stream-rtp.o      \
        output-stream-dummy.o 
 
 ifdef FFDIR
@@ -19,6 +20,10 @@ OBJS += input-stream-avf.o output-stream-avf.o
 ifdef GTK
 OBJS += output-stream-play.o
 endif
+endif
+
+ifdef PJDIR
+OBJS += input-stream-rtp.o
 endif
 
 all: libchunkiser.a
@@ -35,3 +40,12 @@ output-stream-play.o: CPPFLAGS += `pkg-config --cflags gtk+-2.0`
 CPPFLAGS += -DGTK
 endif
 endif
+
+ifdef PJDIR
+#input-stream-rtp.o: CFLAGS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --cflags libpjproject)
+input-stream-rtp.o: CFLAGS += $(shell cat $(PJDIR)/CFLAGS)
+#debug flags for RTP chunkiser
+#input-stream-rtp.o: CFLAGS += -g -DRTP_DEBUG -DPJ_DEBUG
+CPPFLAGS += -DRTP
+endif
+output-stream-rtp.o: CFLAGS += -g 
