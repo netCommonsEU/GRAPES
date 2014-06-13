@@ -96,6 +96,8 @@ int main(int argc, char *argv[])
   struct chunk c;
 
   cmdline_parse(argc, argv);
+	if (!my_addr)
+		my_addr = strdup("lo");
 
   my_sock = init();
   if (dst_port != 0) {

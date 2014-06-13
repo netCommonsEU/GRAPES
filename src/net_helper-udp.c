@@ -25,6 +25,7 @@
 #endif
 
 #include "net_helper.h"
+#include "fragmenter.h"
 
 #define MAX_MSG_SIZE 1024 * 60
 enum L3PROTOCOL {IPv4, IPv6} l3 = IPv4;
@@ -32,12 +33,15 @@ enum L3PROTOCOL {IPv4, IPv6} l3 = IPv4;
 struct nodeID {
   struct sockaddr_storage addr;
   int fd;
+	struct fragmenter* frag;
 };
 
 int wait4data(const struct nodeID *s, struct timeval *tout, int *user_fds)
 {
   fd_set fds;
   int i, res, max_fd;
+
+	if (fragmenter_msgs_num(s->frag)) return 3;
 
   FD_ZERO(&fds);
   if (s) {
@@ -55,6 +59,7 @@ int wait4data(const struct nodeID *s, struct timeval *tout, int *user_fds)
     }
   }
   res = select(max_fd + 1, &fds, NULL, NULL, tout);
+	
   if (res <= 0) {
     return res;
   }
@@ -108,6 +113,10 @@ struct nodeID *create_node(const char *IPaddr, int port)
       break;
   }
   freeaddrinfo(result);
+
+	s->frag = fragmenter_init();
+	if (!s->frag) res=0;
+
   if (res != 1)
   {
     fprintf(stderr, "Could not convert address '%s'\n", IPaddr);
@@ -174,12 +183,6 @@ void bind_msg_type (uint8_t msgtype)
 {
 }
 
-struct my_hdr_t {
-  uint8_t m_seq;
-  uint8_t frag_seq;
-  uint8_t frags;
-} __attribute__((packed));
-
 int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size)
 {
   struct msghdr msg = {0};
@@ -194,8 +197,8 @@ int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8
   msg.msg_iovlen = 2;
   msg.msg_iov = iov;
 
-  my_hdr.m_seq++;
-  my_hdr.frags = (buffer_size / (MAX_MSG_SIZE)) + 1;
+  my_hdr.message_id++;
+  my_hdr.frags_num = (buffer_size / (MAX_MSG_SIZE)) + 1;
   my_hdr.frag_seq = 0;
 
   do {
@@ -254,17 +257,17 @@ int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *
     buffer_ptr += iov[1].iov_len;
     res = recvmsg(local->fd, &msg, 0);
     recv += (res - sizeof(struct my_hdr_t));
-    if (m_seq != -1 && my_hdr.m_seq != m_seq) {
+    if (m_seq != -1 && my_hdr.message_id != m_seq) {
       return -1;
     } else {
-      m_seq = my_hdr.m_seq;
+      m_seq = my_hdr.message_id;
     }
     if (my_hdr.frag_seq != frag_seq + 1) {
       return -1;
     } else {
      frag_seq++;
     }
-  } while ((my_hdr.frag_seq < my_hdr.frags) && (buffer_size > 0));
+  } while ((my_hdr.frag_seq < my_hdr.frags_num) && (buffer_size > 0));
   memcpy(&(*remote)->addr, &raddr, msg.msg_namelen);
   (*remote)->fd = -1;
 

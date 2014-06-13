@@ -48,6 +48,9 @@ ifeq ($(ARCH),win32)
 LDLIBS += -lws2_32 -lwsock32
 endif
 
+../net_helper-udp.o: ../fragmenter.o
+LDFLAGS+= ../fragmenter.o
+
 topo_msg_size_test: $(NET_HELPER).o
 
 topology_test_attr: topology_test_attr.o net_helpers.o
