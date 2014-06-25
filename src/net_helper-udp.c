@@ -33,15 +33,17 @@ enum L3PROTOCOL {IPv4, IPv6} l3 = IPv4;
 struct nodeID {
   struct sockaddr_storage addr;
   int fd;
-	struct fragmenter* frag;
 };
+
+struct net_helper_context {
+	struct fragmenter* incoming_frag;
+	struct fragmenter* outgoing_frag;
+} net_helper_ctx;
 
 int wait4data(const struct nodeID *s, struct timeval *tout, int *user_fds)
 {
   fd_set fds;
   int i, res, max_fd;
-
-	if (fragmenter_msgs_num(s->frag)) return 3;
 
   FD_ZERO(&fds);
   if (s) {
@@ -114,8 +116,6 @@ struct nodeID *create_node(const char *IPaddr, int port)
   }
   freeaddrinfo(result);
 
-	s->frag = fragmenter_init();
-	if (!s->frag) res=0;
 
   if (res != 1)
   {
@@ -142,7 +142,10 @@ struct nodeID *net_helper_init(const char *my_addr, int port, const char *config
     return NULL;
   }
   myself->fd =  socket(myself->addr.ss_family, SOCK_DGRAM, 0);
-  if (myself->fd < 0) {
+	net_helper_ctx.incoming_frag = fragmenter_init();
+	net_helper_ctx.outgoing_frag = fragmenter_init();
+
+  if (myself->fd < 0 || !net_helper_ctx.outgoing_frag ||!net_helper_ctx.incoming_frag ) {
     free(myself);
 
     return NULL;
@@ -183,48 +186,62 @@ void bind_msg_type (uint8_t msgtype)
 {
 }
 
+void print_hex(const uint8_t *data,const int bytes)
+{
+	int i;
+	fprintf(stderr,"Data: [");
+	for (i=0;i<bytes;i++)
+		fprintf(stderr,"%02x",data[i]);
+	fprintf(stderr,"]\n");
+}
+
 int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size)
 {
-  struct msghdr msg = {0};
-  static struct my_hdr_t my_hdr;
-  struct iovec iov[2];
-  int res;
+	uint16_t msg_id;
+	uint8_t i;
+	struct fragmenter * frag = net_helper_ctx.outgoing_frag;
+	struct msghdr * frag_msg;
 
-  iov[0].iov_base = &my_hdr;
-  iov[0].iov_len = sizeof(struct my_hdr_t);
-  msg.msg_name = &to->addr;
-  msg.msg_namelen = sizeof(struct sockaddr_storage);
-  msg.msg_iovlen = 2;
-  msg.msg_iov = iov;
+	fprintf(stderr,"total bytes: %d\n",buffer_size);
+	print_hex(buffer_ptr,buffer_size);
+	msg_id = fragmenter_add_msg(frag,buffer_ptr,buffer_size,DEFAULT_FRAG_SIZE);
 
-  my_hdr.message_id++;
-  my_hdr.frags_num = (buffer_size / (MAX_MSG_SIZE)) + 1;
-  my_hdr.frag_seq = 0;
-
-  do {
-    iov[1].iov_base = buffer_ptr;
-    if (buffer_size > MAX_MSG_SIZE) {
-      iov[1].iov_len = MAX_MSG_SIZE;
-    } else {
-      iov[1].iov_len = buffer_size;
-    }
-    my_hdr.frag_seq++;
-
-    buffer_size -= iov[1].iov_len;
-    buffer_ptr += iov[1].iov_len;
-    res = sendmsg(from->fd, &msg, 0);
-
-    if (res  < 0){
-      int error = errno;
-      fprintf(stderr,"net-helper: sendmsg failed errno %d: %s\n", error, strerror(error));
-    }
-  } while (buffer_size > 0);
-
-  return res;
+	for(i=0; i<fragmenter_frags_num(frag,msg_id);i++)
+	{
+		frag_msg = fragmenter_get_frag(frag,msg_id,i);
+		fprintf(stderr,"bytes: %d\n",frag_msg->msg_iov[1].iov_len);
+		print_hex(frag_msg->msg_iov[1].iov_base,frag_msg->msg_iov[1].iov_len);
+	  frag_msg->msg_namelen = sizeof(struct sockaddr_storage);
+  	frag_msg->msg_name = &to->addr;
+    if(sendmsg(from->fd, frag_msg, 0) < 0)
+      fprintf(stderr,"net-helper: sendmsg failed errno %d: %s\n", errno, strerror(errno));
+	}
+	return 0;
 }
 
 int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *buffer_ptr, int buffer_size)
 {
+	int res;
+	struct msghdr frag_msg;
+	struct fragmenter * frag = net_helper_ctx.incoming_frag;
+
+
+	fragmenter_frag_init(&frag_msg,0,0,0,NULL,buffer_size,FRAG_DATA);
+  res = recvmsg(local->fd, &frag_msg, 0);
+	fragmenter_frag_shrink(&frag_msg,res);
+//	print_hex(frag_msg.msg_iov[1].iov_base,buffer_size);//frag_msg.msg_iov[1].iov_len);
+		fprintf(stderr,"frag bytes: %d\n",frag_msg.msg_iov[1].iov_len);
+	print_hex(frag_msg.msg_iov[1].iov_base,frag_msg.msg_iov[1].iov_len);
+	if (res > 0)
+		fragmenter_add_frag(frag,&frag_msg);
+//	fragmenter_frag_deinit(&frag_msg);
+		
+	res = fragmenter_pop_msg(frag,buffer_ptr,buffer_size);
+	fprintf(stderr,"received bytes %d \n",res);
+	print_hex(buffer_ptr,res);
+	return res;
+
+/*	//////////////////////////////////
   int res, recv, m_seq, frag_seq;
   struct sockaddr_storage raddr;
   struct msghdr msg = {0};
@@ -256,6 +273,8 @@ int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *
     buffer_size -= iov[1].iov_len;
     buffer_ptr += iov[1].iov_len;
     res = recvmsg(local->fd, &msg, 0);
+	fprintf(stderr,"recv buffer content: %s\n",msg.msg_iov[1].iov_base);
+		fprintf(stderr,"received bytes %d \n",res);
     recv += (res - sizeof(struct my_hdr_t));
     if (m_seq != -1 && my_hdr.message_id != m_seq) {
       return -1;
@@ -272,6 +291,7 @@ int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *
   (*remote)->fd = -1;
 
   return recv;
+	*/
 }
 
 int node_addr(const struct nodeID *s, char *addr, int len)
