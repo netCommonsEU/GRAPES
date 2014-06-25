@@ -6,6 +6,7 @@
  *  This is free software; see lgpl-2.1.txt
  */
 
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
@@ -204,7 +205,7 @@ int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8
 
 	fprintf(stderr,"total bytes: %d\n",buffer_size);
 	print_hex(buffer_ptr,buffer_size);
-	msg_id = fragmenter_add_msg(frag,buffer_ptr,buffer_size,DEFAULT_FRAG_SIZE);
+	msg_id = fragmenter_add_msg(frag,buffer_ptr,buffer_size,6);
 
 	for(i=0; i<fragmenter_frags_num(frag,msg_id);i++)
 	{
@@ -221,11 +222,11 @@ int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8
 
 int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *buffer_ptr, int buffer_size)
 {
-	int res;
+	int res,next_res;
 	struct msghdr frag_msg;
 	struct fragmenter * frag = net_helper_ctx.incoming_frag;
 
-
+	do {
 	fragmenter_frag_init(&frag_msg,0,0,0,NULL,buffer_size,FRAG_DATA);
   res = recvmsg(local->fd, &frag_msg, 0);
 	fragmenter_frag_shrink(&frag_msg,res);
@@ -235,6 +236,9 @@ int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *
 	if (res > 0)
 		fragmenter_add_frag(frag,&frag_msg);
 //	fragmenter_frag_deinit(&frag_msg);
+//
+		ioctl(local->fd,FIONREAD,&next_res);
+	} while (next_res);
 		
 	res = fragmenter_pop_msg(frag,buffer_ptr,buffer_size);
 	fprintf(stderr,"received bytes %d \n",res);

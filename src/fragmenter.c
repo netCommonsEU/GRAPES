@@ -55,7 +55,7 @@ uint8_t fragmenter_msg_init(struct fragmenter * frag, const uint16_t msg_id,cons
 	{
 		frag->queue[msg_id%MAX_MSG_NUM] = (struct msghdr *)malloc(sizeof(struct msghdr)*frags_num);
 		for(i=0;i<frags_num;i++)
-			fragmenter_frag_init(&(frag->queue[msg_id%MAX_MSG_NUM][i]),msg_id,frags_num,i,NULL,0,FRAG_DATA);
+			fragmenter_frag_init(&(frag->queue[msg_id%MAX_MSG_NUM][i]),msg_id,frags_num,i,NULL,0,FRAG_VOID);
 		return 0;
 	}
 	return 1;
@@ -87,12 +87,12 @@ uint16_t fragmenter_add_msg(struct fragmenter *frag,const uint8_t * buffer_ptr,c
 	if (fragmenter_msg_exists(frag,msg_id))
 		fragmenter_msg_remove(frag,msg_id);
 
-	frag_data = frag_size-sizeof(struct my_hdr_t);
-	frags_num = (buffer_size / frag_data)+1; 
+	frag_data = frag_size>sizeof(struct my_hdr_t) ? frag_size>sizeof(struct my_hdr_t) : 1;
+	frags_num = (buffer_size / frag_data)+((buffer_size % frag_data) ? 1 :0); 
 	fragmenter_msg_init(frag,msg_id,frags_num);
 
 	for(i=0;i<frags_num;i++)
-		fragmenter_frag_init(&(frag->queue[msg_id%MAX_MSG_NUM][i]),msg_id,frags_num ,i,buffer_ptr+i*frag_data,MIN(frag_data,buffer_size),FRAG_DATA);
+		fragmenter_frag_init(&(frag->queue[msg_id%MAX_MSG_NUM][i]),msg_id,frags_num ,i,buffer_ptr+i*frag_data,MIN(frag_data,buffer_size-i*frag_data),FRAG_DATA);
 
 	frag->queue_size = MIN(frag->queue_size + 1,MAX_MSG_NUM);
 	return msg_id;
@@ -266,7 +266,7 @@ int fragmenter_pop_msg(struct fragmenter * frag, uint8_t * buffer_ptr,const int 
 	int in_bytes = -1;
 	struct msghdr * frag_msg;
 	
-	fragmenter_queue_dump(frag);
+//	fragmenter_queue_dump(frag);
 
 	while(i<MAX_MSG_NUM && !(fragmenter_msg_complete(frag,fragmenter_queue_pos2msg_id(frag,i)))  )
 		i++;
@@ -278,7 +278,7 @@ int fragmenter_pop_msg(struct fragmenter * frag, uint8_t * buffer_ptr,const int 
 		for (i=0;i<fragmenter_frags_num(frag,selected_id);i++)
 		{
 			frag_msg = fragmenter_get_frag(frag,selected_id,i);
-			fprintf(stderr,"data len: %d\n",frag_msg->msg_iov[1].iov_len );
+//			fprintf(stderr,"data len: %d\n",frag_msg->msg_iov[1].iov_len );
 			if (in_bytes + frag_msg->msg_iov[1].iov_len < buffer_size)
 			{
 				memmove(&(buffer_ptr[in_bytes]),frag_msg->msg_iov[1].iov_base,frag_msg->msg_iov[1].iov_len);
