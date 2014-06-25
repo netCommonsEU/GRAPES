@@ -247,6 +247,22 @@ struct msghdr * handle_frag_msg(struct msghdr * frag_msg)
 	return frag_res;
 }
 
+void request_missing_frags(struct nodeID *local)
+{
+	struct msghdr * requests = NULL;
+	struct fragmenter * infrag;
+	uint32_t num_req = 5,i;
+
+	infrag = net_helper_ctx.incoming_frag;
+	requests = fragmenter_frag_requests(infrag,&num_req);
+	for (i=0;i<num_req;i++)
+	{
+		sendmsg(local->fd,&(requests[i]),0);
+		fragmenter_frag_deinit(&(requests[i]));
+	}
+	free(requests);
+}
+
 int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *buffer_ptr, int buffer_size)
 {
 	int res,next_res;
@@ -265,15 +281,17 @@ int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *
 
 		ioctl(local->fd,FIONREAD,&next_res);
 	} while (next_res);
-		
+
+	request_missing_frags(local);
+
 	(*remote) = malloc(sizeof(struct nodeID));
 	res = fragmenter_pop_msg(frag,&(*remote)->addr,buffer_ptr,buffer_size);
 	if(res <= 0)
 		free(*remote);
+
 	fprintf(stderr,"received bytes %d \n",res);
 	print_hex(buffer_ptr,res);
 	return res;
-
 }
 
 int node_addr(const struct nodeID *s, char *addr, int len)
