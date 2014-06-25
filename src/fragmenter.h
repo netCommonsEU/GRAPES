@@ -58,4 +58,6 @@ uint8_t fragmenter_frag_type(const struct msghdr * frag_msg);
 struct msghdr * fragmenter_frag_requests(const struct fragmenter *frag,uint32_t * req_num);
 
 void fragmenter_msg_remove(struct fragmenter *frag,const uint16_t msg_id);
+
+uint8_t fragmenter_msg_exists(const struct fragmenter *frag,const uint16_t msg_id);
 #endif

@@ -205,7 +205,7 @@ int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8
 
 	fprintf(stderr,"total bytes: %d\n",buffer_size);
 	print_hex(buffer_ptr,buffer_size);
-	msg_id = fragmenter_add_msg(frag,buffer_ptr,buffer_size,6);
+	msg_id = fragmenter_add_msg(frag,buffer_ptr,buffer_size,DEFAULT_FRAG_SIZE);
 
 	for(i=0; i<fragmenter_frags_num(frag,msg_id);i++)
 	{
@@ -218,9 +218,9 @@ int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8
 	return 0;
 }
 
-struct msghdr * handle_frag_msg(struct msghdr * frag_msg)
+void handle_frag_msg(const struct nodeID *local,struct msghdr * frag_msg)
 {
-	uint16_t msgid,fragid;
+	uint16_t msgid,fragid,frags;
 	struct msghdr * frag_res = NULL;
 	struct fragmenter * infrag, * outfrag;
 
@@ -240,14 +240,25 @@ struct msghdr * handle_frag_msg(struct msghdr * frag_msg)
 		case FRAG_REQUEST:
 			msgid = fragmenter_frag_msgid(frag_msg);
 			fragid = fragmenter_frag_id(frag_msg);
+			frags = fragmenter_frags_num(outfrag,msgid);
 			fragmenter_frag_deinit(frag_msg);
-			frag_res = fragmenter_get_frag(outfrag,msgid,fragid);
+			if(fragmenter_msg_exists(outfrag,msgid) && fragid < frags)
+			{
+				frag_res = fragmenter_get_frag(outfrag,msgid,fragid);
+				sendmsg(local->fd,frag_res,0);
+			}	else
+			{
+				frag_res = malloc(sizeof(struct msghdr));
+				fragmenter_frag_init(frag_res,msgid,frags,fragid,NULL,0,FRAG_EXPIRED);
+				sendmsg(local->fd,frag_res,0);
+				fragmenter_frag_deinit(frag_msg);
+				free(frag_msg);
+			}
 			break;
 	}
-	return frag_res;
 }
 
-void request_missing_frags(struct nodeID *local)
+void request_missing_frags(const struct nodeID *local)
 {
 	struct msghdr * requests = NULL;
 	struct fragmenter * infrag;
@@ -266,7 +277,7 @@ void request_missing_frags(struct nodeID *local)
 int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *buffer_ptr, int buffer_size)
 {
 	int res,next_res;
-	struct msghdr frag_msg, * frag_res = NULL;
+	struct msghdr frag_msg;
 	struct fragmenter * frag = net_helper_ctx.incoming_frag;
 
 	do {
@@ -275,9 +286,7 @@ int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *
 		fragmenter_frag_shrink(&frag_msg,res);
 
 		if (res > 0)
-			frag_res = handle_frag_msg(&frag_msg);
-		if(frag_res)
-			sendmsg(local->fd,frag_res,0);
+			handle_frag_msg(local,&frag_msg);
 
 		ioctl(local->fd,FIONREAD,&next_res);
 	} while (next_res);
