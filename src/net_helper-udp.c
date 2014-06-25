@@ -210,92 +210,70 @@ int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8
 	for(i=0; i<fragmenter_frags_num(frag,msg_id);i++)
 	{
 		frag_msg = fragmenter_get_frag(frag,msg_id,i);
-		fprintf(stderr,"bytes: %d\n",frag_msg->msg_iov[1].iov_len);
-		print_hex(frag_msg->msg_iov[1].iov_base,frag_msg->msg_iov[1].iov_len);
 	  frag_msg->msg_namelen = sizeof(struct sockaddr_storage);
-  	frag_msg->msg_name = &to->addr;
+  	memmove(frag_msg->msg_name,&to->addr,frag_msg->msg_namelen);
     if(sendmsg(from->fd, frag_msg, 0) < 0)
       fprintf(stderr,"net-helper: sendmsg failed errno %d: %s\n", errno, strerror(errno));
 	}
 	return 0;
 }
 
+struct msghdr * handle_frag_msg(struct msghdr * frag_msg)
+{
+	uint16_t msgid,fragid;
+	struct msghdr * frag_res = NULL;
+	struct fragmenter * infrag, * outfrag;
+
+	infrag = net_helper_ctx.incoming_frag;
+	outfrag = net_helper_ctx.outgoing_frag;
+
+	switch(fragmenter_frag_type(frag_msg))
+	{
+		case FRAG_DATA:
+			fragmenter_add_frag(infrag,frag_msg);
+			break;
+		case FRAG_EXPIRED:
+			msgid = fragmenter_frag_msgid(frag_msg);
+			fragmenter_msg_remove(infrag,fragmenter_frag_msgid(frag_msg));
+			fragmenter_frag_deinit(frag_msg);
+			break;
+		case FRAG_REQUEST:
+			msgid = fragmenter_frag_msgid(frag_msg);
+			fragid = fragmenter_frag_id(frag_msg);
+			fragmenter_frag_deinit(frag_msg);
+			frag_res = fragmenter_get_frag(outfrag,msgid,fragid);
+			break;
+	}
+	return frag_res;
+}
+
 int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *buffer_ptr, int buffer_size)
 {
 	int res,next_res;
-	struct msghdr frag_msg;
+	struct msghdr frag_msg, * frag_res = NULL;
 	struct fragmenter * frag = net_helper_ctx.incoming_frag;
 
 	do {
-	fragmenter_frag_init(&frag_msg,0,0,0,NULL,buffer_size,FRAG_DATA);
-  res = recvmsg(local->fd, &frag_msg, 0);
-	fragmenter_frag_shrink(&frag_msg,res);
-//	print_hex(frag_msg.msg_iov[1].iov_base,buffer_size);//frag_msg.msg_iov[1].iov_len);
-		fprintf(stderr,"frag bytes: %d\n",frag_msg.msg_iov[1].iov_len);
-	print_hex(frag_msg.msg_iov[1].iov_base,frag_msg.msg_iov[1].iov_len);
-	if (res > 0)
-		fragmenter_add_frag(frag,&frag_msg);
-//	fragmenter_frag_deinit(&frag_msg);
-//
+		fragmenter_frag_init(&frag_msg,0,0,0,NULL,buffer_size,FRAG_DATA);
+		res = recvmsg(local->fd, &frag_msg, 0);
+		fragmenter_frag_shrink(&frag_msg,res);
+
+		if (res > 0)
+			frag_res = handle_frag_msg(&frag_msg);
+		if(frag_res)
+			sendmsg(local->fd,frag_res,0);
+
 		ioctl(local->fd,FIONREAD,&next_res);
 	} while (next_res);
 		
-	res = fragmenter_pop_msg(frag,buffer_ptr,buffer_size);
+	(*remote) = malloc(sizeof(struct nodeID));
+	res = fragmenter_pop_msg(frag,&(*remote)->addr,buffer_ptr,buffer_size);
+	if(res <= 0)
+		free(*remote);
 	fprintf(stderr,"received bytes %d \n",res);
 	print_hex(buffer_ptr,res);
 	return res;
 
-/*	//////////////////////////////////
-  int res, recv, m_seq, frag_seq;
-  struct sockaddr_storage raddr;
-  struct msghdr msg = {0};
-  static struct my_hdr_t my_hdr;
-  struct iovec iov[2];
-
-  iov[0].iov_base = &my_hdr;
-  iov[0].iov_len = sizeof(struct my_hdr_t);
-  msg.msg_name = &raddr;
-  msg.msg_namelen = sizeof(struct sockaddr_storage);
-  msg.msg_iovlen = 2;
-  msg.msg_iov = iov;
-
-  *remote = malloc(sizeof(struct nodeID));
-  if (*remote == NULL) {
-    return -1;
-  }
-
-  recv = 0;
-  m_seq = -1;
-  frag_seq = 0;
-  do {
-    iov[1].iov_base = buffer_ptr;
-    if (buffer_size > MAX_MSG_SIZE) {
-      iov[1].iov_len = MAX_MSG_SIZE;
-    } else {
-      iov[1].iov_len = buffer_size;
-    }
-    buffer_size -= iov[1].iov_len;
-    buffer_ptr += iov[1].iov_len;
-    res = recvmsg(local->fd, &msg, 0);
-	fprintf(stderr,"recv buffer content: %s\n",msg.msg_iov[1].iov_base);
-		fprintf(stderr,"received bytes %d \n",res);
-    recv += (res - sizeof(struct my_hdr_t));
-    if (m_seq != -1 && my_hdr.message_id != m_seq) {
-      return -1;
-    } else {
-      m_seq = my_hdr.message_id;
-    }
-    if (my_hdr.frag_seq != frag_seq + 1) {
-      return -1;
-    } else {
-     frag_seq++;
-    }
-  } while ((my_hdr.frag_seq < my_hdr.frags_num) && (buffer_size > 0));
-  memcpy(&(*remote)->addr, &raddr, msg.msg_namelen);
-  (*remote)->fd = -1;
-
-  return recv;
-	*/
 }
 
 int node_addr(const struct nodeID *s, char *addr, int len)

@@ -3,6 +3,7 @@
 
 #include<list.h>
 #include <stdint.h>
+#include <sys/socket.h>
 
 #define DEFAULT_FRAG_SIZE 100
 #define FRAG_VOID 0
@@ -44,8 +45,15 @@ uint8_t fragmenter_frag_init(struct msghdr * frag_msg,const uint16_t msg_id,cons
 
 void fragmenter_frag_deinit(struct msghdr * frag_msg);
 
-int fragmenter_pop_msg(struct fragmenter * frag, uint8_t * buffer_ptr,const int buffer_size);
+int fragmenter_pop_msg(struct fragmenter * frag,struct sockaddr_storage * msg_name, uint8_t * buffer_ptr,const int buffer_size);
 
 uint16_t fragmenter_msgs_num(const struct fragmenter *frag);
 
+uint16_t fragmenter_frag_msgid(const struct msghdr * frag_msg);
+
+uint8_t fragmenter_frag_id(const struct msghdr * frag_msg);
+
+uint8_t fragmenter_frag_type(const struct msghdr * frag_msg);
+
+void fragmenter_msg_remove(struct fragmenter *frag,const uint16_t msg_id);
 #endif

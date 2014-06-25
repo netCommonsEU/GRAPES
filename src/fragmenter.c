@@ -118,6 +118,12 @@ struct msghdr * fragmenter_get_frag(const struct fragmenter *frag,const uint16_t
 	return NULL;
 }
 
+uint32_t fragmenter_frag_msgname(const struct msghdr * frag_msg,struct sockaddr_storage * addr)
+{
+	memmove(addr,frag_msg->msg_name,frag_msg->msg_namelen); 
+	return frag_msg->msg_namelen;
+}	
+
 void fragmenter_frag_deinit(struct msghdr * frag_msg)
 {
 	uint8_t i;
@@ -163,6 +169,10 @@ uint8_t fragmenter_frag_init(struct msghdr * frag_msg,const uint16_t msg_id,cons
 
 		frag_msg->msg_iovlen = 2;
 		frag_msg->msg_iov = iov;
+
+		frag_msg->msg_namelen = sizeof(struct sockaddr_storage);
+		frag_msg->msg_name = malloc(frag_msg->msg_namelen);
+		memset(frag_msg->msg_name,0,frag_msg->msg_namelen);
 	
 		return 0;
 }
@@ -260,7 +270,7 @@ void fragmenter_queue_dump(const struct fragmenter * frag)
 
 }	
 
-int fragmenter_pop_msg(struct fragmenter * frag, uint8_t * buffer_ptr,const int buffer_size)
+int fragmenter_pop_msg(struct fragmenter * frag,struct sockaddr_storage * msgname, uint8_t * buffer_ptr,const int buffer_size)
 {
 	uint16_t i=0,selected_id;
 	int in_bytes = -1;
@@ -285,11 +295,31 @@ int fragmenter_pop_msg(struct fragmenter * frag, uint8_t * buffer_ptr,const int 
 				in_bytes += frag_msg->msg_iov[1].iov_len;
 			}
 		}
+		fragmenter_frag_msgname(frag_msg,msgname);
 		fragmenter_msg_remove(frag,selected_id);
 		
 	}
 
 	return in_bytes;
+}
+
+uint8_t fragmenter_frag_type(const struct msghdr * frag_msg)
+{
+	struct my_hdr_t * hdr;
+	hdr = fragmenter_frag_header(frag_msg);
+	return hdr->frag_type;
+}
+uint16_t fragmenter_frag_msgid(const struct msghdr * frag_msg)
+{
+	struct my_hdr_t * hdr;
+	hdr = fragmenter_frag_header(frag_msg);
+	return hdr->message_id;
+}
+uint8_t fragmenter_frag_id(const struct msghdr * frag_msg)
+{
+	struct my_hdr_t * hdr;
+	hdr = fragmenter_frag_header(frag_msg);
+	return hdr->frag_seq;
 }
 
 uint16_t fragmenter_msgs_num(const struct fragmenter *frag)
