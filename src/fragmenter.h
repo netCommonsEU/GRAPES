@@ -11,13 +11,6 @@
 #define FRAG_REQUEST 2
 #define FRAG_EXPIRED 3
 
-struct my_hdr_t {
-  uint16_t message_id;
-  uint8_t frag_seq;
-  uint8_t frags_num;
-	uint8_t frag_type;
-} __attribute__((packed));
-
 
 /*implementation dependent fragmenter handle*/
 struct fragmenter;
@@ -46,8 +39,6 @@ uint8_t fragmenter_frag_init(struct msghdr * frag_msg,const uint16_t msg_id,cons
 void fragmenter_frag_deinit(struct msghdr * frag_msg);
 
 int fragmenter_pop_msg(struct fragmenter * frag,struct sockaddr_storage * msg_name, uint8_t * buffer_ptr,const int buffer_size);
-
-uint16_t fragmenter_msgs_num(const struct fragmenter *frag);
 
 uint16_t fragmenter_frag_msgid(const struct msghdr * frag_msg);
 

@@ -14,6 +14,13 @@ struct fragmenter{
 	struct msghdr * queue[MAX_MSG_NUM];
 };
 
+struct my_hdr_t {
+  uint16_t message_id;
+  uint8_t frag_seq;
+  uint8_t frags_num;
+	uint8_t frag_type;
+} __attribute__((packed));
+
 struct fragmenter *fragmenter_init()
 {
 	uint16_t i;
@@ -21,7 +28,6 @@ struct fragmenter *fragmenter_init()
 	if (f)
 	{	
 		f->last_message_id = 0;
-		f->queue_size = 0;
 		for (i=0;i<MAX_MSG_NUM;i++)
 			f->queue[i] = NULL;
 		return f;
@@ -98,7 +104,6 @@ void fragmenter_msg_remove(struct fragmenter *frag,const uint16_t msg_id)
 			fragmenter_frag_deinit(&(frag->queue[(msg_id%MAX_MSG_NUM)][i]));
 
 		free(frag->queue[msg_id%MAX_MSG_NUM]);
-		frag->queue_size -= 1;
 	}
 }
 
@@ -120,7 +125,6 @@ uint16_t fragmenter_add_msg(struct fragmenter *frag,const uint8_t * buffer_ptr,c
 	for(i=0;i<frags_num;i++)
 		fragmenter_frag_init(&(frag->queue[msg_id%MAX_MSG_NUM][i]),msg_id,frags_num ,i,buffer_ptr+i*frag_data,MIN(frag_data,buffer_size-i*frag_data),FRAG_DATA);
 
-	frag->queue_size = MIN(frag->queue_size + 1,MAX_MSG_NUM);
 	return msg_id;
 }
 
@@ -346,7 +350,3 @@ uint8_t fragmenter_frag_id(const struct msghdr * frag_msg)
 	return hdr->frag_seq;
 }
 
-uint16_t fragmenter_msgs_num(const struct fragmenter *frag)
-{
-	return frag->queue_size;
-}
