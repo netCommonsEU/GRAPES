@@ -38,9 +38,10 @@ struct fragmenter *fragmenter_init()
 
 struct my_hdr_t * fragmenter_frag_header(const struct msghdr * frag_msg)
 {
-	return ((struct my_hdr_t *) (frag_msg->msg_iov[0].iov_base));
+	if (frag_msg && frag_msg->msg_iovlen > 0)
+		return ((struct my_hdr_t *) (frag_msg->msg_iov[0].iov_base));
+	return NULL;
 }
-
 int32_t fragmenter_queue_pos2msg_id(const struct fragmenter * frag, uint16_t pos)
 {
 	struct my_hdr_t * hdr;
@@ -55,6 +56,14 @@ int32_t fragmenter_queue_pos2msg_id(const struct fragmenter * frag, uint16_t pos
 	return -1; 
 }
 
+void fragmenter_destroy(struct fragmenter * frag)
+{
+	uint16_t i;
+	for (i=0;i<MAX_MSG_NUM;i++)
+		fragmenter_msg_remove(frag,fragmenter_queue_pos2msg_id(frag,i));
+	free(frag);
+	
+}
 
 uint8_t fragmenter_msg_exists(const struct fragmenter *frag,const uint16_t msg_id)
 {
@@ -82,67 +91,47 @@ uint8_t fragmenter_msg_init(struct fragmenter * frag, const uint16_t msg_id,cons
 	return 1;
 }
 
-uint8_t fragmenter_msg_frags(const struct fragmenter * frag,const uint16_t msg_id)
-{	
-	struct my_hdr_t * hdr;
-	if(fragmenter_msg_exists(frag,msg_id))
-	{
-		hdr = fragmenter_frag_header(&(frag->queue[msg_id%MAX_MSG_NUM][0]));
-		return  hdr->frags_num;
-	}
-	return 0;
-}
-
 void fragmenter_msg_remove(struct fragmenter *frag,const uint16_t msg_id)
 {
 	uint8_t frags_num,i;
 
 	if(fragmenter_msg_exists(frag,msg_id))
 	{	
-		frags_num = fragmenter_frags_num(frag,msg_id);
+		frags_num = fragmenter_msg_frags(frag,msg_id);
 		for(i=0;i<frags_num;i++)
 			fragmenter_frag_deinit(&(frag->queue[(msg_id%MAX_MSG_NUM)][i]));
 
 		free(frag->queue[msg_id%MAX_MSG_NUM]);
 	}
+	frag->queue[msg_id%MAX_MSG_NUM] = NULL;
 }
 
-uint16_t fragmenter_add_msg(struct fragmenter *frag,const uint8_t * buffer_ptr,const int buffer_size,const size_t frag_size)
+int32_t fragmenter_add_msg(struct fragmenter *frag,const uint8_t * buffer_ptr,const int buffer_size,const size_t frag_size)
 {
-	uint16_t msg_id;
+	int32_t msg_id = -1;
 	uint8_t frags_num,i;
 	size_t frag_data;
 
-	msg_id = (frag->last_message_id + 1);
-
-	if (fragmenter_msg_exists(frag,msg_id))
-		fragmenter_msg_remove(frag,msg_id);
-
-	frag_data = frag_size>sizeof(struct my_hdr_t) ? frag_size>sizeof(struct my_hdr_t) : 1;
-	frags_num = (buffer_size / frag_data)+((buffer_size % frag_data) ? 1 :0); 
-	fragmenter_msg_init(frag,msg_id,frags_num);
-
-	for(i=0;i<frags_num;i++)
-		fragmenter_frag_init(&(frag->queue[msg_id%MAX_MSG_NUM][i]),msg_id,frags_num ,i,buffer_ptr+i*frag_data,MIN(frag_data,buffer_size-i*frag_data),FRAG_DATA);
-
-	return msg_id;
-}
-
-uint8_t fragmenter_frags_num(const struct fragmenter *frag,const uint16_t msg_id)
-{
-	uint8_t frags_num = 0;
-	struct my_hdr_t * hdr;
-	if(fragmenter_msg_exists(frag,msg_id))
+	if (frag && buffer_size > 0 && buffer_ptr)
 	{
-		hdr = fragmenter_frag_header(&(frag->queue[msg_id%MAX_MSG_NUM][0]));
-		frags_num = hdr->frags_num;
+		msg_id = (frag->last_message_id++);
+
+		if (fragmenter_msg_exists(frag,msg_id))
+			fragmenter_msg_remove(frag,msg_id);
+
+		frag_data = frag_size>sizeof(struct my_hdr_t) ? frag_size-sizeof(struct my_hdr_t) : 1;
+		frags_num = (buffer_size / frag_data)+((buffer_size % frag_data) ? 1 :0); 
+		fragmenter_msg_init(frag,msg_id,frags_num);
+
+		for(i=0;i<frags_num;i++)
+			fragmenter_frag_init(&(frag->queue[msg_id%MAX_MSG_NUM][i]),msg_id,frags_num ,i,buffer_ptr+i*frag_data,MIN(frag_data,buffer_size-i*frag_data),FRAG_DATA);
 	}
-	return frags_num;
+	return msg_id;
 }
 
 struct msghdr * fragmenter_get_frag(const struct fragmenter *frag,const uint16_t msg_id,const uint8_t frag_id)
 {
-	if(fragmenter_msg_exists(frag,msg_id) && frag_id < fragmenter_frags_num(frag,msg_id))
+	if(frag && fragmenter_msg_exists(frag,msg_id) && frag_id < fragmenter_msg_frags(frag,msg_id))
 		return &(frag->queue[msg_id%MAX_MSG_NUM][frag_id]);
 
 	return NULL;
@@ -155,109 +144,72 @@ uint32_t fragmenter_frag_msgname(const struct msghdr * frag_msg,struct sockaddr_
 }	
 
 void fragmenter_frag_deinit(struct msghdr * frag_msg)
+	//free iov structures, i.e., header and data
 {
 	uint8_t i;
-	if(frag_msg->msg_iov)
+	if(frag_msg && frag_msg->msg_iov && frag_msg->msg_iovlen > 0)
 	{	
 		for (i=0;i<frag_msg->msg_iovlen;i++)
-			free((frag_msg->msg_iov)[i].iov_base);
+			if((frag_msg->msg_iov)[i].iov_base)
+			{
+				free((frag_msg->msg_iov)[i].iov_base);
+				(frag_msg->msg_iov)[i].iov_base = NULL;
+			}
+		free(frag_msg->msg_iov);
+		frag_msg->msg_iov = NULL;
 	}
-	free(frag_msg->msg_iov);
 }
 
-int fragmenter_frag_shrink(struct msghdr * frag_msg,const int frag_size)
+int fragmenter_frag_shrink(struct msghdr * frag_msg,const size_t frag_size)
 	//inclusive of header size
 {
 	struct iovec * iov;
-	iov = frag_msg->msg_iov;	
-	iov[1].iov_len = MAX(frag_size-sizeof(struct my_hdr_t),0);
-	iov[1].iov_base = realloc(iov[1].iov_base,iov[1].iov_len);
-	return frag_size;
+	int16_t data_size = frag_size-sizeof(struct my_hdr_t);
+
+	if (frag_msg)
+	{
+		iov = frag_msg->msg_iov;	
+		iov[1].iov_len = MAX(data_size,0);
+		iov[1].iov_base = realloc(iov[1].iov_base,iov[1].iov_len);
+		return iov[1].iov_len;
+	}
+	return -1;
 }
 
 uint8_t fragmenter_frag_init(struct msghdr * frag_msg,const uint16_t msg_id,const uint8_t frags_num ,const uint8_t frag_id,const uint8_t* data_ptr,const int data_size,const uint8_t type)
+	/*returns 0 on success*/
 {
 		struct iovec * iov;
-
-		memset(frag_msg,0,sizeof(struct msghdr));
-		iov = (struct iovec *) malloc(sizeof(struct iovec) * 2);
-
-		iov[0].iov_len = sizeof(struct my_hdr_t);
-		iov[0].iov_base = malloc(sizeof(struct my_hdr_t));
-		((struct my_hdr_t *)iov[0].iov_base)->message_id = msg_id;
-		((struct my_hdr_t *)iov[0].iov_base)->frags_num = frags_num;
-		((struct my_hdr_t *)iov[0].iov_base)->frag_seq = frag_id;
-		((struct my_hdr_t *)iov[0].iov_base)->frag_type = type;
-		
-		if (data_size > 0)
+		if(frag_msg && frag_id < frags_num)
 		{
-			iov[1].iov_len = data_size;
-			iov[1].iov_base = malloc(iov[1].iov_len);
-			if(data_ptr)
-				memmove(iov[1].iov_base,data_ptr,(size_t)iov[1].iov_len);
-		}
+			memset(frag_msg,0,sizeof(struct msghdr));
+			iov = (struct iovec *) malloc(sizeof(struct iovec) * 2);
 
-		frag_msg->msg_iovlen = 2;
-		frag_msg->msg_iov = iov;
+			iov[0].iov_len = sizeof(struct my_hdr_t);
+			iov[0].iov_base = malloc(sizeof(struct my_hdr_t));
+			((struct my_hdr_t *)iov[0].iov_base)->message_id = msg_id;
+			((struct my_hdr_t *)iov[0].iov_base)->frags_num = frags_num;
+			((struct my_hdr_t *)iov[0].iov_base)->frag_seq = frag_id;
+			((struct my_hdr_t *)iov[0].iov_base)->frag_type = type;
+			
+			if (data_size > 0)
+			{
+				iov[1].iov_len = data_size;
+				iov[1].iov_base = malloc(iov[1].iov_len);
+				if(data_ptr)
+					memmove(iov[1].iov_base,data_ptr,(size_t)iov[1].iov_len);
+			}
 
-		frag_msg->msg_namelen = sizeof(struct sockaddr_storage);
-		frag_msg->msg_name = malloc(frag_msg->msg_namelen);
-		memset(frag_msg->msg_name,0,frag_msg->msg_namelen);
-	
-		return 0;
-}
+			frag_msg->msg_iovlen = 2;
+			frag_msg->msg_iov = iov;
 
-struct msghdr * fragmenter_frag_requests(const struct fragmenter *frag,uint32_t * req_num)
-{
-	struct msghdr * requests;
-	uint16_t i;
-	int16_t msgid;
-	uint8_t j;
-	uint32_t req_i=0;
-
-	requests = malloc(*req_num);
-
-	for (i=0;i<MAX_MSG_NUM && req_i<*req_num;i++)
-	{
-		msgid = fragmenter_queue_pos2msg_id(frag,i);
-		if (msgid >= 0)
-			for(j=0;j<(fragmenter_msg_frags(frag,msgid)) && req_i<*req_num;j++)
-				if(fragmenter_frag_type(fragmenter_get_frag(frag,msgid,j)) == FRAG_VOID)
-					fragmenter_frag_init(&(requests[req_i++]),msgid,fragmenter_msg_frags(frag,msgid),j,NULL,0,FRAG_REQUEST);
-	}
-	*req_num = req_i;
-	return requests;
-}
-
-uint16_t fragmenter_add_frag(struct fragmenter *frag,const struct msghdr * fragment)
-{
-	struct msghdr * msg_frag;
-	uint16_t msg_id = -1;
-	uint8_t frag_id,frags_num;
-	struct my_hdr_t * hdr;
-
-	hdr = fragmenter_frag_header(fragment);
-	msg_id = hdr->message_id;
-	frag_id = hdr->frag_seq;
-	frags_num = hdr->frags_num;
-	if (!fragmenter_msg_exists(frag,msg_id))
-	{
-		fragmenter_msg_remove(frag,msg_id);
-		fragmenter_msg_init(frag,msg_id,frags_num);
-	}
-	msg_frag = &(frag->queue[msg_id%MAX_MSG_NUM][frag_id]); 
-	memmove(msg_frag,fragment,sizeof(struct msghdr));
+			frag_msg->msg_namelen = sizeof(struct sockaddr_storage);
+			frag_msg->msg_name = malloc(frag_msg->msg_namelen);
+			memset(frag_msg->msg_name,0,frag_msg->msg_namelen);
 		
-	return msg_id;
-}
-
-
-void fragmenter_dump_header(const struct my_hdr_t * hdr)
-{
-	fprintf(stderr,"MSG ID: %d\n",hdr->message_id);
-	fprintf(stderr,"FRAG ID: %d\n",hdr->frag_seq);
-	fprintf(stderr,"FRAGS NUM: %d\n",hdr->frags_num);
-	fprintf(stderr,"FRAG TYPE: %d\n",hdr->frag_type);
+			return 0;
+		}
+		return 1;
 }
 
 uint8_t fragmenter_msg_complete(const struct fragmenter * frag,uint16_t msg_id)
@@ -280,6 +232,73 @@ uint8_t fragmenter_msg_complete(const struct fragmenter * frag,uint16_t msg_id)
 		return 0;
 }
 
+struct msghdr * fragmenter_frag_requests(const struct fragmenter *frag,uint32_t * req_num)
+{
+	struct msghdr * requests = NULL;
+	uint16_t i;
+	int16_t msgid;
+	uint8_t j;
+	uint32_t req_i=0;
+
+	if(frag && req_num && *req_num)
+	{
+		requests = malloc((*req_num) * sizeof(struct msghdr));
+
+		for (i=0;i<MAX_MSG_NUM && req_i<*req_num;i++)
+		{
+			msgid = fragmenter_queue_pos2msg_id(frag,i);
+			if (msgid >= 0 && !(fragmenter_msg_complete(frag,msgid)))
+				for(j=0;j<(fragmenter_msg_frags(frag,msgid)) && req_i<*req_num;j++)
+					if(fragmenter_frag_type(fragmenter_get_frag(frag,msgid,j)) == FRAG_VOID)
+						fragmenter_frag_init(&(requests[req_i++]),msgid,fragmenter_msg_frags(frag,msgid),j,NULL,0,FRAG_REQUEST);
+		}
+		if (req_i == 0)
+		{
+			free(requests);
+			requests = NULL;
+		}
+	}
+	if (req_num)
+		*req_num = req_i;
+	return requests;
+}
+
+int32_t fragmenter_add_frag(struct fragmenter *frag,const struct msghdr * fragment)
+{
+	struct msghdr * msg_frag;
+	int32_t msg_id = -1;
+	uint8_t frag_id,frags_num;
+	struct my_hdr_t * hdr;
+
+	if (fragment)
+		hdr = fragmenter_frag_header(fragment);
+
+	if (frag && fragment && hdr && hdr->frag_type == FRAG_DATA)
+	{
+		msg_id = hdr->message_id;
+		frag_id = hdr->frag_seq;
+		frags_num = hdr->frags_num;
+		if (!fragmenter_msg_exists(frag,msg_id))
+		{
+			fragmenter_msg_remove(frag,msg_id);
+			fragmenter_msg_init(frag,msg_id,frags_num);
+		}
+		msg_frag = &(frag->queue[msg_id%MAX_MSG_NUM][frag_id]); 
+		memmove(msg_frag,fragment,sizeof(struct msghdr));
+	}	
+
+	return msg_id;
+}
+
+
+void fragmenter_dump_header(const struct my_hdr_t * hdr)
+{
+	fprintf(stderr,"MSG ID: %d\n",hdr->message_id);
+	fprintf(stderr,"FRAG ID: %d\n",hdr->frag_seq);
+	fprintf(stderr,"FRAGS NUM: %d\n",hdr->frags_num);
+	fprintf(stderr,"FRAG TYPE: %d\n",hdr->frag_type);
+}
+
 void fragmenter_queue_dump(const struct fragmenter * frag)
 {
 	uint16_t i;
@@ -299,54 +318,82 @@ void fragmenter_queue_dump(const struct fragmenter * frag)
 }	
 
 int fragmenter_pop_msg(struct fragmenter * frag,struct sockaddr_storage * msgname, uint8_t * buffer_ptr,const int buffer_size)
+	// pop a complete msg from the queue
+	// returns the number of bytes copied (which must be less than buffer_size)
+	// if no message is available or in case of errors returns -1
 {
 	uint16_t i=0,selected_id;
-	int in_bytes = -1;
+	int in_bytes = -1, frag_datasize;
 	struct msghdr * frag_msg;
 	
-//	fragmenter_queue_dump(frag);
-
-	while(i<MAX_MSG_NUM && !(fragmenter_msg_complete(frag,fragmenter_queue_pos2msg_id(frag,i)))  )
-		i++;
-
-	if(i < MAX_MSG_NUM)
+	if(frag)
 	{
-		selected_id = fragmenter_queue_pos2msg_id(frag,i);
-		in_bytes = 0;
-		for (i=0;i<fragmenter_frags_num(frag,selected_id);i++)
+		while(i<MAX_MSG_NUM && !(fragmenter_msg_complete(frag,fragmenter_queue_pos2msg_id(frag,i)))  )
+			i++;
+
+		if(i < MAX_MSG_NUM)
 		{
-			frag_msg = fragmenter_get_frag(frag,selected_id,i);
-//			fprintf(stderr,"data len: %d\n",frag_msg->msg_iov[1].iov_len );
-			if (in_bytes + frag_msg->msg_iov[1].iov_len < buffer_size)
+			selected_id = fragmenter_queue_pos2msg_id(frag,i);
+			in_bytes = 0;
+			for (i=0;i<fragmenter_msg_frags(frag,selected_id) && buffer_ptr;i++)
 			{
-				memmove(&(buffer_ptr[in_bytes]),frag_msg->msg_iov[1].iov_base,frag_msg->msg_iov[1].iov_len);
-				in_bytes += frag_msg->msg_iov[1].iov_len;
+				frag_msg = fragmenter_get_frag(frag,selected_id,i);
+				frag_datasize = frag_msg->msg_iov[1].iov_len;
+				if ((in_bytes + frag_datasize) <= buffer_size)
+				{
+					memmove(&(buffer_ptr[in_bytes]),frag_msg->msg_iov[1].iov_base,frag_msg->msg_iov[1].iov_len);
+					in_bytes += frag_msg->msg_iov[1].iov_len;
+				}
 			}
+			if(msgname)
+				fragmenter_frag_msgname(frag_msg,msgname);
+			fragmenter_msg_remove(frag,selected_id);
+			
 		}
-		fragmenter_frag_msgname(frag_msg,msgname);
-		fragmenter_msg_remove(frag,selected_id);
-		
 	}
 
 	return in_bytes;
 }
 
-uint8_t fragmenter_frag_type(const struct msghdr * frag_msg)
+int16_t fragmenter_frag_type(const struct msghdr * frag_msg)
 {
-	struct my_hdr_t * hdr;
-	hdr = fragmenter_frag_header(frag_msg);
-	return hdr->frag_type;
+	struct my_hdr_t * hdr = NULL;
+	if(frag_msg)
+		hdr = fragmenter_frag_header(frag_msg);
+	if (hdr && hdr->frag_seq < hdr->frags_num )
+		return hdr->frag_type;
+	return -1;
 }
-uint16_t fragmenter_frag_msgid(const struct msghdr * frag_msg)
+int32_t fragmenter_frag_msgid(const struct msghdr * frag_msg)
 {
-	struct my_hdr_t * hdr;
-	hdr = fragmenter_frag_header(frag_msg);
-	return hdr->message_id;
+	struct my_hdr_t * hdr = NULL;
+	if(frag_msg)
+		hdr = fragmenter_frag_header(frag_msg);
+	if (hdr)
+		return hdr->message_id;
+	return -1;
 }
-uint8_t fragmenter_frag_id(const struct msghdr * frag_msg)
+int16_t fragmenter_frag_id(const struct msghdr * frag_msg)
 {
+	struct my_hdr_t * hdr = NULL;
+	if(frag_msg)
+		hdr = fragmenter_frag_header(frag_msg);
+	if (hdr && hdr->frag_seq <hdr->frags_num )
+		return hdr->frag_seq;
+	return -1;
+}
+
+uint8_t fragmenter_msg_frags(const struct fragmenter * frag,const uint16_t msg_id)
+{	
+	uint8_t frags_num = 0;
 	struct my_hdr_t * hdr;
-	hdr = fragmenter_frag_header(frag_msg);
-	return hdr->frag_seq;
+	if(frag && fragmenter_msg_exists(frag,msg_id))
+	{
+		hdr = fragmenter_frag_header(&(frag->queue[msg_id%MAX_MSG_NUM][0]));
+//		fragmenter_dump_header(hdr);
+		frags_num = hdr->frags_num;
+	}
+	printf("fraghi %d\n",hdr->frags_num);
+	return frags_num;
 }
 

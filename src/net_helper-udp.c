@@ -207,7 +207,7 @@ int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8
 	print_hex(buffer_ptr,buffer_size);
 	msg_id = fragmenter_add_msg(frag,buffer_ptr,buffer_size,DEFAULT_FRAG_SIZE);
 
-	for(i=0; i<fragmenter_frags_num(frag,msg_id);i++)
+	for(i=0; i<fragmenter_msg_frags(frag,msg_id);i++)
 	{
 		frag_msg = fragmenter_get_frag(frag,msg_id,i);
 	  frag_msg->msg_namelen = sizeof(struct sockaddr_storage);
@@ -240,7 +240,7 @@ void handle_frag_msg(const struct nodeID *local,struct msghdr * frag_msg)
 		case FRAG_REQUEST:
 			msgid = fragmenter_frag_msgid(frag_msg);
 			fragid = fragmenter_frag_id(frag_msg);
-			frags = fragmenter_frags_num(outfrag,msgid);
+			frags = fragmenter_msg_frags(outfrag,msgid);
 			fragmenter_frag_deinit(frag_msg);
 			if(fragmenter_msg_exists(outfrag,msgid) && fragid < frags)
 			{
