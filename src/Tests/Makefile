@@ -12,7 +12,7 @@ TESTS = topology_test \
         topology_test_attr \
         chunk_encoding_test \
         chunk_sending_test \
-        multiple_chunk_sending_test \
+        fragmenter_test \
         chunk_signaling_test \
         chunkidset_test \
         chunkidset_test_bug \
@@ -76,8 +76,8 @@ chunkidset_test_bug: chunkidset_test_bug.o chunkid_set_h.o
 chunk_sending_test: chunk_sending_test.o net_helpers.o
 chunk_sending_test: $(NET_HELPER).o
 
-multiple_chunk_sending_test: multiple_chunk_sending_test.o net_helpers.o
-multiple_chunk_sending_test: $(NET_HELPER).o
+fragmenter_test: net_helpers.o
+fragmenter_test: $(NET_HELPER).o
 
 chunk_signaling_test: chunk_signaling_test.o net_helpers.o chunkid_set_h.o
 chunk_signaling_test: $(NET_HELPER).o
