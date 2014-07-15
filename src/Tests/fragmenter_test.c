@@ -61,10 +61,20 @@ void fragmenter_add_msg_test()
 void fragmenter_msg_frags_test()
 {
 	struct fragmenter * frag = fragmenter_init();
+	struct msghdr frag_msg ;
+	int32_t msgid;
 
 	assert(fragmenter_msg_frags(NULL,0) == 0);
 	assert(fragmenter_msg_frags(frag,0) == 0);
 	assert(fragmenter_msg_frags(frag,10) == 0);
+
+	msgid = fragmenter_add_msg(frag,"1234567890abcdef",16,HDR_SIZE+4);
+	assert(fragmenter_msg_frags(frag,msgid) == 4);
+
+	fragmenter_frag_init(&frag_msg,10,3,1,"ciao mondo",11,FRAG_DATA);
+	fragmenter_add_frag(frag,&frag_msg);
+	assert(fragmenter_msg_frags(frag,10) == 3);
+
 
 	fragmenter_destroy(frag);
 	printf("[PASSED] - %s\n",__func__);
@@ -242,7 +252,8 @@ void fragmenter_frag_requests_test()
 	assert(fragmenter_frag_requests(frag,&req_num) == NULL);
 	fragmenter_pop_msg(frag,NULL,NULL,0);
 	
-	msgid = fragmenter_frag_init(&frag_msg,1,3,1,"ciao mondo",11,FRAG_DATA);
+	msgid = 1;
+	fragmenter_frag_init(&frag_msg,msgid,3,1,"ciao mondo",11,FRAG_DATA);
 	fragmenter_add_frag(frag,&frag_msg);
 	req_num = 0;
 	requests = fragmenter_frag_requests(frag,&req_num);
@@ -264,7 +275,6 @@ void fragmenter_frag_requests_test()
 	assert(req_num == 2);
 
 	assert(fragmenter_frag_msgid(requests) == 1);
-	printf("frags num: %d\n",fragmenter_msg_frags(frag,msgid));
 	assert(fragmenter_msg_frags(frag,msgid) == 3);
 	assert(fragmenter_frag_id(requests) == 0);
 
@@ -303,7 +313,7 @@ void fragmenter_msg_exists_test()
 	frag = fragmenter_init();
 	assert(!fragmenter_msg_exists(NULL,45));
 	msgid = fragmenter_add_msg(frag,"1234567890abcdef",16,HDR_SIZE+4);
-	assert(fragmenter_msg_exists(NULL,msgid));
+	assert(fragmenter_msg_exists(NULL,msgid) == 0);
 
 	printf("[PASSED] - %s\n",__func__);
 }

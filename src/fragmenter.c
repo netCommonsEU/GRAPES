@@ -69,7 +69,7 @@ uint8_t fragmenter_msg_exists(const struct fragmenter *frag,const uint16_t msg_i
 {
 	uint8_t res = 0;
 	struct my_hdr_t* hdr;
-	if(frag->queue[msg_id%MAX_MSG_NUM] != NULL)
+	if(frag && frag->queue[msg_id%MAX_MSG_NUM] != NULL)
 	{
 		hdr = fragmenter_frag_header(&(frag->queue[msg_id%MAX_MSG_NUM][0]));
 		if (hdr && hdr->message_id == msg_id)
@@ -95,15 +95,18 @@ void fragmenter_msg_remove(struct fragmenter *frag,const uint16_t msg_id)
 {
 	uint8_t frags_num,i;
 
-	if(fragmenter_msg_exists(frag,msg_id))
-	{	
-		frags_num = fragmenter_msg_frags(frag,msg_id);
-		for(i=0;i<frags_num;i++)
-			fragmenter_frag_deinit(&(frag->queue[(msg_id%MAX_MSG_NUM)][i]));
+	if(frag)
+	{
+		if(fragmenter_msg_exists(frag,msg_id))
+		{	
+			frags_num = fragmenter_msg_frags(frag,msg_id);
+			for(i=0;i<frags_num;i++)
+				fragmenter_frag_deinit(&(frag->queue[(msg_id%MAX_MSG_NUM)][i]));
 
-		free(frag->queue[msg_id%MAX_MSG_NUM]);
+			free(frag->queue[msg_id%MAX_MSG_NUM]);
+		}
+		frag->queue[msg_id%MAX_MSG_NUM] = NULL;
 	}
-	frag->queue[msg_id%MAX_MSG_NUM] = NULL;
 }
 
 int32_t fragmenter_add_msg(struct fragmenter *frag,const uint8_t * buffer_ptr,const int buffer_size,const size_t frag_size)
@@ -303,7 +306,7 @@ void fragmenter_queue_dump(const struct fragmenter * frag)
 {
 	uint16_t i;
 	fprintf(stderr,"fragmenter queue dump\n");
-	for (i=0;i<MAX_MSG_NUM;i++)
+	for (i=0;i<MAX_MSG_NUM && frag!=NULL;i++)
 	{
 		if (fragmenter_msg_exists(frag,fragmenter_queue_pos2msg_id(frag,i)))
 		{
@@ -386,14 +389,14 @@ int16_t fragmenter_frag_id(const struct msghdr * frag_msg)
 uint8_t fragmenter_msg_frags(const struct fragmenter * frag,const uint16_t msg_id)
 {	
 	uint8_t frags_num = 0;
-	struct my_hdr_t * hdr;
+	struct my_hdr_t * hdr = NULL;
 	if(frag && fragmenter_msg_exists(frag,msg_id))
 	{
 		hdr = fragmenter_frag_header(&(frag->queue[msg_id%MAX_MSG_NUM][0]));
-//		fragmenter_dump_header(hdr);
+	//	fragmenter_dump_header(hdr);
 		frags_num = hdr->frags_num;
 	}
-	printf("fraghi %d\n",hdr->frags_num);
+//	printf("fraghi %d\n",hdr->frags_num);
 	return frags_num;
 }
 
