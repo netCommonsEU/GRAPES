@@ -169,11 +169,19 @@ int fragmenter_frag_shrink(struct msghdr * frag_msg,const size_t frag_size)
 	struct iovec * iov;
 	int16_t data_size = frag_size-sizeof(struct my_hdr_t);
 
-	if (frag_msg)
+	if (frag_msg && frag_msg->msg_iov)
 	{
 		iov = frag_msg->msg_iov;	
 		iov[1].iov_len = MAX(data_size,0);
-		iov[1].iov_base = realloc(iov[1].iov_base,iov[1].iov_len);
+		if (iov[1].iov_base)
+			if(iov[1].iov_len > 0)
+				iov[1].iov_base = realloc(iov[1].iov_base,iov[1].iov_len);
+			else
+			{
+				free(iov[1].iov_base);
+				iov[1].iov_base = NULL;
+			}
+
 		return iov[1].iov_len;
 	}
 	return -1;
@@ -183,7 +191,8 @@ uint8_t fragmenter_frag_init(struct msghdr * frag_msg,const uint16_t msg_id,cons
 	/*returns 0 on success*/
 {
 		struct iovec * iov;
-		if(frag_msg && frag_id < frags_num)
+	
+		if(frag_msg)
 		{
 			memset(frag_msg,0,sizeof(struct msghdr));
 			iov = (struct iovec *) malloc(sizeof(struct iovec) * 2);
@@ -201,6 +210,11 @@ uint8_t fragmenter_frag_init(struct msghdr * frag_msg,const uint16_t msg_id,cons
 				iov[1].iov_base = malloc(iov[1].iov_len);
 				if(data_ptr)
 					memmove(iov[1].iov_base,data_ptr,(size_t)iov[1].iov_len);
+			}
+			else
+			{
+				iov[1].iov_len = 0;
+				iov[1].iov_base = NULL;
 			}
 
 			frag_msg->msg_iovlen = 2;

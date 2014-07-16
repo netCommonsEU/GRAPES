@@ -328,7 +328,7 @@ void fragmenter_frag_init_test()
 	assert(fragmenter_frag_init(&frag_msg,0,1,0,NULL,0,0) == 0);
 	fragmenter_frag_deinit(&frag_msg);
 	
-	assert(fragmenter_frag_init(&frag_msg,0,1,1,NULL,0,0) > 0);
+//	assert(fragmenter_frag_init(&frag_msg,0,1,1,NULL,0,0) > 0); removed frag id inconsistent check
 
 	assert(fragmenter_frag_init(&frag_msg,0,1,0,"ciao",5,0) == 0);
 	fragmenter_frag_deinit(&frag_msg);
@@ -350,7 +350,12 @@ void fragmenter_frag_deinit_test()
 	struct msghdr frag_msg;
 
 	fragmenter_frag_deinit(NULL);
+
 	fragmenter_frag_init(&frag_msg,5,4,3,"ciao",5,7);
+	fragmenter_frag_deinit(&frag_msg);
+	assert(frag_msg.msg_iov == NULL);
+
+	fragmenter_frag_init(&frag_msg,0,0,0,NULL,800,FRAG_DATA);
 	fragmenter_frag_deinit(&frag_msg);
 	assert(frag_msg.msg_iov == NULL);
 	

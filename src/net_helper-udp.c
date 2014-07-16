@@ -210,6 +210,7 @@ int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8
 	for(i=0; i<fragmenter_msg_frags(frag,msg_id);i++)
 	{
 		frag_msg = fragmenter_get_frag(frag,msg_id,i);
+		fprintf(stderr,"sending fragment: %d\n",i);
 	  frag_msg->msg_namelen = sizeof(struct sockaddr_storage);
   	memmove(frag_msg->msg_name,&to->addr,frag_msg->msg_namelen);
     if(sendmsg(from->fd, frag_msg, 0) < 0)
@@ -230,6 +231,7 @@ void handle_frag_msg(const struct nodeID *local,struct msghdr * frag_msg)
 	switch(fragmenter_frag_type(frag_msg))
 	{
 		case FRAG_DATA:
+			fprintf(stderr,"adding frag\n");
 			fragmenter_add_frag(infrag,frag_msg);
 			break;
 		case FRAG_EXPIRED:
@@ -283,10 +285,13 @@ int recv_from_peer(const struct nodeID *local, struct nodeID **remote, uint8_t *
 	do {
 		fragmenter_frag_init(&frag_msg,0,0,0,NULL,buffer_size,FRAG_DATA);
 		res = recvmsg(local->fd, &frag_msg, 0);
+
 		fragmenter_frag_shrink(&frag_msg,res);
 
 		if (res > 0)
 			handle_frag_msg(local,&frag_msg);
+		else
+			fragmenter_frag_deinit(&frag_msg);
 
 		ioctl(local->fd,FIONREAD,&next_res);
 	} while (next_res);
