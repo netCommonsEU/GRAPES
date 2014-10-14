@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include "scheduler_la.h"
 
+#include<stdio.h>
+
 #define MAX(A,B)    ((A)>(B) ? (A) : (B))
 #define MIN(A,B)    ((A)<(B) ? (A) : (B))
 
@@ -213,6 +215,7 @@ void selectPeersForChunks(SchedOrdering ordering, schedPeerID *peers, size_t pee
   schedPeerID filtered[filtered_len];
 
   filterPeers2(peers, peers_len, chunks,chunks_len, filtered, &filtered_len, filter);
+	fprintf(stderr,"[DEBUG] Filtered peers for offer: %d\n",filtered_len);
 
   selectPeers(ordering, filtered, filtered_len, evaluate, selected, selected_len);
 }

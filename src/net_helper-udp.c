@@ -35,6 +35,12 @@ struct nodeID {
 };
 
 int wait4data(const struct nodeID *s, struct timeval *tout, int *user_fds)
+/* returns 0 if timeout expires 
+ * returns -1 in case of error of the select function
+ * retruns 1 if the nodeID file descriptor is ready to be read
+ * 					(i.e., some data is ready from the network socket)
+ * returns 2 if some of the user_fds file descriptors is ready
+ */
 {
   fd_set fds;
   int i, res, max_fd;
@@ -275,10 +281,14 @@ int node_addr(const struct nodeID *s, char *addr, int len)
 {
   int n;
 
-  if (node_ip(s, addr, len) < 0) {
-    return -1;
-  }
-  n = snprintf(addr + strlen(addr), len - strlen(addr) - 1, ":%d", node_port(s));
+	if (s)
+	{
+		if (node_ip(s, addr, len) < 0) {
+			return -1;
+		}
+		n = snprintf(addr + strlen(addr), len - strlen(addr) - 1, ":%d", node_port(s));
+	} else
+		n = snprintf(addr, len , "None");
 
   return n;
 }
@@ -318,6 +328,7 @@ int nodeid_cmp(const struct nodeID *s1, const struct nodeID *s2)
 		return res;
 	else
 		return port1-port2;
+//		return port1 == port2 ? 0 : 1;
 
 //  return memcmp(&s1->addr, &s2->addr, sizeof(struct sockaddr_storage));
 }
