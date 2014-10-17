@@ -88,6 +88,33 @@ struct peerset *peerset_init(const char *config)
   return p;
 }
 
+int peerset_push_peer(struct peerset *h,const  struct peer *e)
+{
+  int pos;
+
+  pos = peerset_check_insert_pos(h, e->id);
+  if (pos < 0){
+    return 0;
+  }
+
+  if (h->n_elements == h->size) {
+    struct peer **res;
+
+    res = realloc(h->elements, (h->size + DEFAULT_SIZE_INCREMENT) * sizeof(struct peer *));
+    if (res == NULL) {
+      return -1;
+    }
+    h->size += DEFAULT_SIZE_INCREMENT;
+    h->elements = res;
+  }
+
+  memmove(&h->elements[pos + 1], &h->elements[pos] , ((h->n_elements++) - pos) * sizeof(struct peer *));
+
+  h->elements[pos] = e;;
+
+  return h->n_elements;
+}
+
 int peerset_add_peer(struct peerset *h,const  struct nodeID *id)
 {
   struct peer *e;
@@ -146,6 +173,17 @@ struct peer *peerset_get_peer(const struct peerset *h, const struct nodeID *id)
 {
   int i = peerset_check(h,id);
   return (i<0) ? NULL : h->elements[i];
+}
+
+struct peer *peerset_pop_peer(struct peerset *h, const struct nodeID *id){
+  int i = peerset_check(h,id);
+  if (i >= 0) {
+    struct peer *e = h->elements[i];
+    memmove(&h->elements[i], &h->elements[i+1], ((h->n_elements--) - (i+1)) * sizeof(struct peer *));
+
+    return e;
+  }
+  return NULL;
 }
 
 int peerset_remove_peer(struct peerset *h, const struct nodeID *id){
