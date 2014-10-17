@@ -73,6 +73,7 @@ struct chunkiser_ctx {
   int video_stream_id;    // index in `streams`
   int rfc3551;
   int verbosity;
+  int rtp_log;
   int fds[RTP_UDP_PORTS_NUM_MAX + 1];
   int fds_len;  // even if "-1"-terminated, save length to make things easier
   struct rtp_stream streams[RTP_STREAMS_NUM_MAX];  // its len is fds_len/2
@@ -359,6 +360,7 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
   ctx->video_stream_id = -2;
   ctx->rfc3551 = 0;
   ctx->verbosity = 1;
+  ctx->rtp_log = 0;
   chunk_size = RTP_DEFAULT_CHUNK_SIZE;
   ctx->max_size = chunk_size + UDP_MAX_SIZE;
   ctx->max_delay = RTP_DEFAULT_MAX_DELAY;
@@ -371,6 +373,12 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
   if (cfg_tags) {
     config_value_int(cfg_tags, "verbosity", &(ctx->verbosity));
     printf_log(ctx, 2, "Verbosity set to %i", ctx->verbosity);
+
+    config_value_int(cfg_tags, "rtp_log", &(ctx->rtp_log));
+    if (ctx->rtp_log) {
+        printf_log(ctx, 2, "Producing parsable rtp log. "
+                   "TimeStamps are expressed in 2^-32 s.");
+    }
 
     config_value_int(cfg_tags, "rfc3551", &(ctx->rfc3551));
     printf_log(ctx, 2, "%ssing RFC 3551",
@@ -528,6 +536,9 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
           if (info.valid) {
             printf_log(ctx, 2, "  packet has NTP timestamp (seconds) %llu",
                        info.ntp_ts >> TS_SHIFT);
+            if (ctx->rtp_log) {
+              fprintf(stderr, "[RTP_LOG] timestamp=%llu size=%d port_id=%d\n", info.ntp_ts, new_pkt_size, i);
+            }
             // update chunk timestamp
             if (info.ntp_ts == 0ULL) {
               // packet with unknown ts, ignore all timestamps
