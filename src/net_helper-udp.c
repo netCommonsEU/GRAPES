@@ -281,11 +281,8 @@ int node_addr(const struct nodeID *s, char *addr, int len)
 {
   int n;
 
-	if (s)
+	if (s && node_ip(s, addr, len)>=0)
 	{
-		if (node_ip(s, addr, len) < 0) {
-			return -1;
-		}
 		n = snprintf(addr + strlen(addr), len - strlen(addr) - 1, ":%d", node_port(s));
 	} else
 		n = snprintf(addr, len , "None");
@@ -362,6 +359,7 @@ void nodeid_free(struct nodeID *s)
 
 int node_ip(const struct nodeID *s, char *ip, int len)
 {
+	int res = 0;
   switch (s->addr.ss_family)
   {
     case AF_INET:
@@ -371,13 +369,14 @@ int node_ip(const struct nodeID *s, char *ip, int len)
       inet_ntop(s->addr.ss_family, &((const struct sockaddr_in6 *)&s->addr)->sin6_addr, ip, len);
       break;
     default:
+			res = -1;
       break;
   }
   if (!ip) {
 	  perror("inet_ntop");
-	  return -1;
+		res = -1;
   }
-  return 1;
+  return res;
 }
 
 int node_port(const struct nodeID *s)

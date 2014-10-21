@@ -88,6 +88,13 @@ struct peerset *peerset_init(const char *config)
   return p;
 }
 
+void peerset_destroy(struct peerset **h)
+{
+	peerset_clear(*h,0);
+	free(*h);
+	*h = NULL;
+}
+
 int peerset_push_peer(struct peerset *h,const  struct peer *e)
 {
   int pos;
