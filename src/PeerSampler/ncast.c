@@ -18,7 +18,7 @@
 #include "../Cache/topocache.h"
 #include "../Cache/ncast_proto.h"
 #include "../Cache/proto.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "grapes_msg_types.h"
 
 #define DEFAULT_CACHE_SIZE 10
@@ -101,16 +101,16 @@ static struct peersampler_context* init(struct nodeID *myID, const void *metadat
   context = ncast_context_init();
   if (!context) return NULL;
 
-  cfg_tags = config_parse(config);
-  res = config_value_int_default(cfg_tags, "cache_size", &context->cache_size, DEFAULT_CACHE_SIZE);
-  res = config_value_int_default(cfg_tags, "max_timestamp", &max_timestamp, DEFAULT_MAX_TIMESTAMP);
-  res = config_value_int_default(cfg_tags, "period", &context->period, DEFAULT_PERIOD);
-  res = config_value_int_default(cfg_tags, "bootstrap_period", &context->bootstrap_period, DEFAULT_BOOTSTRAP_PERIOD);
-  res = config_value_int_default(cfg_tags, "bootstrap_cycles", &context->bootstrap_cycles, DEFAULT_BOOTSTRAP_CYCLES);
-  res = config_value_int_default(cfg_tags, "adaptive", &context->adaptive, plus_features);
-  res = config_value_int_default(cfg_tags, "restart", &context->restart, plus_features);
-  res = config_value_int_default(cfg_tags, "randomize", &context->randomize, plus_features);
-  res = config_value_int_default(cfg_tags, "slowstart", &context->slowstart, plus_features);
+  cfg_tags = grapes_config_parse(config);
+  res = grapes_config_value_int_default(cfg_tags, "cache_size", &context->cache_size, DEFAULT_CACHE_SIZE);
+  res = grapes_config_value_int_default(cfg_tags, "max_timestamp", &max_timestamp, DEFAULT_MAX_TIMESTAMP);
+  res = grapes_config_value_int_default(cfg_tags, "period", &context->period, DEFAULT_PERIOD);
+  res = grapes_config_value_int_default(cfg_tags, "bootstrap_period", &context->bootstrap_period, DEFAULT_BOOTSTRAP_PERIOD);
+  res = grapes_config_value_int_default(cfg_tags, "bootstrap_cycles", &context->bootstrap_cycles, DEFAULT_BOOTSTRAP_CYCLES);
+  res = grapes_config_value_int_default(cfg_tags, "adaptive", &context->adaptive, plus_features);
+  res = grapes_config_value_int_default(cfg_tags, "restart", &context->restart, plus_features);
+  res = grapes_config_value_int_default(cfg_tags, "randomize", &context->randomize, plus_features);
+  res = grapes_config_value_int_default(cfg_tags, "slowstart", &context->slowstart, plus_features);
   free(cfg_tags);
 
   context->local_cache = cache_init(context->cache_size, metadata_size, max_timestamp);

@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "chunk.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "chunkiser.h"
 #include "dechunkiser_iface.h"
 
@@ -33,11 +33,11 @@ struct output_stream *out_stream_init(const char *fname, const char *config)
 #else
   res->out = &out_raw;
 #endif
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *type;
 
-    type = config_value_str(cfg_tags, "dechunkiser");
+    type = grapes_config_value_str(cfg_tags, "dechunkiser");
     if (type && !strcmp(type, "raw")) {
       res->out = &out_raw;
     } else if (type && !strcmp(type, "udp")) {

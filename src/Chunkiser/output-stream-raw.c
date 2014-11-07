@@ -15,7 +15,7 @@
 
 #include "int_coding.h"
 #include "payload.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "dechunkiser_iface.h"
 
 enum pt {
@@ -52,11 +52,11 @@ static struct dechunkiser_ctx *raw_open(const char *fname, const char *config)
       res->fd = 1;
     }
   }
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *pt;
 
-    pt = config_value_str(cfg_tags, "payload");
+    pt = grapes_config_value_str(cfg_tags, "payload");
     if (pt) {
       if (!strcmp(pt, "avf")) {
         res->payload_type = avf;

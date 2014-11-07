@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "config.h"
+#include "grapes_config.h"
 
 #define NAME_SIZE 32
 #define VAL_SIZE 64
@@ -19,7 +19,7 @@ struct tag {
 
 #define MAX_TAGS 16
 
-struct tag *config_parse(const char *cfg)
+struct tag *grapes_config_parse(const char *cfg)
 {
   struct tag *res;
   int i = 0;
@@ -67,7 +67,7 @@ struct tag *config_parse(const char *cfg)
   return res;
 }
 
-const char *config_value_str(const struct tag *cfg_values, const char *value)
+const char *grapes_config_value_str(const struct tag *cfg_values, const char *value)
 {
   int i, done;
 
@@ -86,11 +86,11 @@ const char *config_value_str(const struct tag *cfg_values, const char *value)
   return NULL;
 }
 
-int config_value_int(const struct tag *cfg_values, const char *value, int *res)
+int grapes_config_value_int(const struct tag *cfg_values, const char *value, int *res)
 {
   const char *str_res;
 
-  str_res = config_value_str(cfg_values, value);
+  str_res = grapes_config_value_str(cfg_values, value);
   if (str_res == NULL) {
     return 0;
   }
@@ -100,11 +100,11 @@ int config_value_int(const struct tag *cfg_values, const char *value, int *res)
   return 1;
 }
 
-int config_value_double(const struct tag *cfg_values, const char *value, double *res)
+int grapes_config_value_double(const struct tag *cfg_values, const char *value, double *res)
 {
   const char *str_res;
 
-  str_res = config_value_str(cfg_values, value);
+  str_res = grapes_config_value_str(cfg_values, value);
   if (str_res == NULL) {
     return 0;
   }
@@ -114,30 +114,30 @@ int config_value_double(const struct tag *cfg_values, const char *value, double 
   return 1;
 }
 
-const char *config_value_str_default(const struct tag *cfg_values, const char *value, const char *default_value)
+const char *grapes_config_value_str_default(const struct tag *cfg_values, const char *value, const char *default_value)
 {
   const char *res;
 
-  res = config_value_str(cfg_values, value);
+  res = grapes_config_value_str(cfg_values, value);
   return res ? res : default_value;
 }
 
-int config_value_int_default(const struct tag *cfg_values, const char *value, int *res, int default_value)
+int grapes_config_value_int_default(const struct tag *cfg_values, const char *value, int *res, int default_value)
 {
   int r;
 
-  r = config_value_int(cfg_values, value, res);
+  r = grapes_config_value_int(cfg_values, value, res);
   if (!r) {
     *res = default_value;
   }
   return r;
 }
 
-int config_value_double_default(const struct tag *cfg_values, const char *value, double *res, double default_value)
+int grapes_config_value_double_default(const struct tag *cfg_values, const char *value, double *res, double default_value)
 {
   int r;
 
-  r = config_value_double(cfg_values, value, res);
+  r = grapes_config_value_double(cfg_values, value, res);
   if (!r) {
     *res = default_value;
   }

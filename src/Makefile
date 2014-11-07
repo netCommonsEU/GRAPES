@@ -7,7 +7,7 @@ SUBDIRS = ChunkIDSet ChunkTrading TopologyManager ChunkBuffer PeerSet Scheduler 
 ifneq ($(ARCH),win32)
   SUBDIRS += CloudSupport
 endif
-COMMON_OBJS = config.o
+COMMON_OBJS = grapes_config.o
 
 OBJ_LSTS = $(addsuffix /objs.lst, $(SUBDIRS))
 

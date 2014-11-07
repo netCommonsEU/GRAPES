@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 #include "cloud_helper_iface.h"
-#include "config.h"
+#include "grapes_config.h"
 
 struct delegate_iface {
   void* (*cloud_helper_init)(struct nodeID *local, const char *config);
@@ -50,8 +50,8 @@ delegate_cloud_init(struct nodeID *local, const char *config)
   struct delegate_iface *delegate_impl;
   void *dlib;
 
-  cfg_tags = config_parse(config);
-  dlib_name = config_value_str(cfg_tags, "delegate_lib");
+  cfg_tags = grapes_config_parse(config);
+  dlib_name = grapes_config_value_str(cfg_tags, "delegate_lib");
   dlib = dlopen(dlib_name, RTLD_NOW);
   if (dlib == NULL) {
     printf("error: %s", dlerror());

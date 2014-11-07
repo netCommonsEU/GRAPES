@@ -12,7 +12,7 @@
 #include "libav-compat.h"
 #include "int_coding.h"
 #include "payload.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "ffmpeg_compat.h"
 #include "chunkiser_iface.h"
 
@@ -182,12 +182,12 @@ static struct chunkiser_ctx *avf_open(const char *fname, int *period, const char
   desc->a_frames = 0;
   desc->a_data = NULL;
   desc->a_size = 0;
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *media;
 
-    config_value_int(cfg_tags, "loop", &desc->loop);
-    media = config_value_str(cfg_tags, "media");
+    grapes_config_value_int(cfg_tags, "loop", &desc->loop);
+    media = grapes_config_value_str(cfg_tags, "media");
     if (media) {
       if (!strcmp(media, "audio")) {
         audio_streams = 0;
@@ -200,8 +200,8 @@ static struct chunkiser_ctx *avf_open(const char *fname, int *period, const char
         video_streams = 0;
       }
     }
-    config_value_int(cfg_tags, "vframes", &desc->v_frames_max);
-    config_value_int(cfg_tags, "aframes", &desc->a_frames_max);
+    grapes_config_value_int(cfg_tags, "vframes", &desc->v_frames_max);
+    grapes_config_value_int(cfg_tags, "aframes", &desc->a_frames_max);
   }
   free(cfg_tags);
   for (i = 0; i < desc->s->nb_streams; i++) {

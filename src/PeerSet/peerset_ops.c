@@ -15,7 +15,7 @@
 #include "peerset.h"
 #include "chunkidset.h"
 #include "net_helper.h"
-#include "config.h"
+#include "grapes_config.h"
 
 #define DEFAULT_SIZE_INCREMENT 32
 
@@ -69,12 +69,12 @@ struct peerset *peerset_init(const char *config)
     return NULL;
   }
   p->n_elements = 0;
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (!cfg_tags) {
     free(p);
     return NULL;
   }
-  res = config_value_int(cfg_tags, "size", &p->size);
+  res = grapes_config_value_int(cfg_tags, "size", &p->size);
   if (!res) {
     p->size = 0;
   }

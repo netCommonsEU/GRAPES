@@ -26,7 +26,7 @@
 #include "net_helper.h"
 #include "cloud_helper_iface.h"
 #include "request_handler.h"
-#include "config.h"
+#include "grapes_config.h"
 
 #define CLOUD_NODE_ADDR "0.0.0.0"
 
@@ -481,10 +481,10 @@ void* cloud_helper_init(struct nodeID *local, const char *config)
 
   ctx = malloc(sizeof(struct libs3_cloud_context));
   memset(ctx, 0, sizeof(struct libs3_cloud_context));
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
 
   /* Parse fundametal parameters */
-  arg = config_value_str(cfg_tags, "s3_access_key");
+  arg = grapes_config_value_str(cfg_tags, "s3_access_key");
   if (!arg) {
     deallocate_context(ctx);
     fprintf(stderr,
@@ -494,7 +494,7 @@ void* cloud_helper_init(struct nodeID *local, const char *config)
   }
   ctx->s3_bucket_context.accessKeyId = strdup(arg);
 
-  arg = config_value_str(cfg_tags, "s3_secret_key");
+  arg = grapes_config_value_str(cfg_tags, "s3_secret_key");
   if (!arg) {
     deallocate_context(ctx);
     fprintf(stderr,
@@ -504,7 +504,7 @@ void* cloud_helper_init(struct nodeID *local, const char *config)
   }
   ctx->s3_bucket_context.secretAccessKey = strdup(arg);
 
-  arg = config_value_str(cfg_tags, "s3_bucket_name");
+  arg = grapes_config_value_str(cfg_tags, "s3_bucket_name");
   if (!arg) {
     deallocate_context(ctx);
     fprintf(stderr,
@@ -515,7 +515,7 @@ void* cloud_helper_init(struct nodeID *local, const char *config)
   ctx->s3_bucket_context.bucketName = strdup(arg);
 
   ctx->s3_bucket_context.protocol = S3ProtocolHTTPS;
-  arg = config_value_str(cfg_tags, "s3_protocol");
+  arg = grapes_config_value_str(cfg_tags, "s3_protocol");
   if (arg) {
     if (strcmp(arg, "https") == 0) {
       ctx->s3_bucket_context.protocol = S3ProtocolHTTPS;
@@ -529,7 +529,7 @@ void* cloud_helper_init(struct nodeID *local, const char *config)
 
   /* Parse optional parameters */
   ctx->blocking_put_request = 1;
-  arg = config_value_str(cfg_tags, "s3_blocking_put");
+  arg = grapes_config_value_str(cfg_tags, "s3_blocking_put");
   if (arg) {
     if (strcmp(arg, "1") == 0)
       ctx->blocking_put_request = 1;

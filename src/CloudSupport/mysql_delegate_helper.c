@@ -25,7 +25,7 @@
 #include "net_helper.h"
 #include "request_handler.h"
 #include "cloud_helper_iface.h"
-#include "config.h"
+#include "grapes_config.h"
 
 
 #define CLOUD_NODE_ADDR "0.0.0.0"
@@ -95,7 +95,7 @@ typedef struct mysql_get_response mysql_get_response_t;
 static const char* parse_required_param(struct tag *cfg_tags, const char *name)
 {
   const char *arg;
-  arg = config_value_str(cfg_tags, name);
+  arg = grapes_config_value_str(cfg_tags, name);
   if (!arg) {
     fprintf(stderr, "mysql_delegate_helper: missing required parameter " \
             "'%s'\n", name);
@@ -312,7 +312,7 @@ void* cloud_helper_init(struct nodeID *local, const char *config)
 
   ctx = malloc(sizeof(struct mysql_cloud_context));
   memset(ctx, 0, sizeof(struct mysql_cloud_context));
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
 
   /* Parse fundametal parameters */
   if (!(mysql_host=parse_required_param(cfg_tags, "mysql_host"))) {

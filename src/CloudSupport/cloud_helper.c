@@ -14,7 +14,7 @@
 
 #include "../Utils/fifo_queue.h"
 
-#include "config.h"
+#include "grapes_config.h"
 
 #define CLOUD_HELPER_INITAIL_INSTANCES 2
 
@@ -80,8 +80,8 @@ struct cloud_helper_context* cloud_helper_init(struct nodeID *local,
   struct tag *cfg_tags;
   const char *provider;
 
-  cfg_tags = config_parse(config);
-  provider = config_value_str(cfg_tags, "provider");
+  cfg_tags = grapes_config_parse(config);
+  provider = grapes_config_value_str(cfg_tags, "provider");
 
   if (!provider) return NULL;
 

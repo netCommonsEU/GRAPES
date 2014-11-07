@@ -14,7 +14,7 @@
 
 #include "net_helper.h"
 #include "../Cache/topocache.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "topman_iface.h"
 
 #define DUMB_DEFAULT_MEM	20
@@ -56,16 +56,16 @@ static int dumbInit(struct nodeID *myID, void *metadata, int metadata_size, rank
 	struct tag *cfg_tags;
 	int res;
 
-	cfg_tags = config_parse(config);
-	res = config_value_int(cfg_tags, "cache_size", &cache_size);
+	cfg_tags = grapes_config_parse(config);
+	res = grapes_config_value_int(cfg_tags, "cache_size", &cache_size);
 	if (!res) {
 		cache_size = DUMB_DEFAULT_CSIZE;
 	}
-	res = config_value_int(cfg_tags, "memory", &memory);
+	res = grapes_config_value_int(cfg_tags, "memory", &memory);
 	if (!res) {
 		memory = DUMB_DEFAULT_MEM;
 	}
-	res = config_value_int(cfg_tags, "period", &period);
+	res = grapes_config_value_int(cfg_tags, "period", &period);
 	if (!res) {
 		period = DUMB_DEFAULT_PERIOD;
 	}

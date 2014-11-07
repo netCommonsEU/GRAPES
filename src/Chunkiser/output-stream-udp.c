@@ -19,7 +19,7 @@
 
 #include "int_coding.h"
 #include "payload.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "dechunkiser_iface.h"
 
 #define UDP_PORTS_NUM_MAX 10
@@ -50,12 +50,12 @@ static int dst_parse(const char *config, int *ports, char *ip)
   struct tag *cfg_tags;
 
   sprintf(ip, "127.0.0.1");
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     int j;
     const char *addr;
 
-    addr = config_value_str(cfg_tags, "addr");
+    addr = grapes_config_value_str(cfg_tags, "addr");
     if (addr) {
       sprintf(ip, "%s", addr);
     }
@@ -63,7 +63,7 @@ static int dst_parse(const char *config, int *ports, char *ip)
       char tag[8];
 
       sprintf(tag, "port%d", j);
-      if (config_value_int(cfg_tags, tag, &ports[i])) {
+      if (grapes_config_value_int(cfg_tags, tag, &ports[i])) {
         i++;
       }
     }

@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "chunk.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "chunkiser.h"
 #include "chunkiser_iface.h"
 
@@ -32,11 +32,11 @@ struct input_stream *input_stream_open(const char *fname, int *period, const cha
 #else
   res->in = &in_dumb;
 #endif
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *type;
 
-    type = config_value_str(cfg_tags, "chunkiser");
+    type = grapes_config_value_str(cfg_tags, "chunkiser");
     if (type && !strcmp(type, "dummy")) {
       res->in = &in_dummy;
     }

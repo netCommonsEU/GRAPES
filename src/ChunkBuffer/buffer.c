@@ -11,7 +11,7 @@
 
 #include "chunk.h"
 #include "chunkbuffer.h"
-#include "config.h"
+#include "grapes_config.h"
 
 struct chunk_buffer {
   int size;
@@ -83,12 +83,12 @@ struct chunk_buffer *cb_init(const char *config)
   }
   memset(cb, 0, sizeof(struct chunk_buffer));
 
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (!cfg_tags) {
     free(cb);
     return NULL;
   }
-  res = config_value_int(cfg_tags, "size", &cb->size);
+  res = grapes_config_value_int(cfg_tags, "size", &cb->size);
   if (!res) {
     free(cb);
     free(cfg_tags);

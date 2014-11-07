@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
+#include "grapes_config.h"
 #include "dechunkiser_iface.h"
 
 enum output_type {
@@ -44,11 +44,11 @@ static struct dechunkiser_ctx *dummy_open(const char *fname, const char *config)
   }
   res->last_id = -1;
   res->lost = 0;
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *pt;
 
-    pt = config_value_str(cfg_tags, "type");
+    pt = grapes_config_value_str(cfg_tags, "type");
     if (pt) {
       if (!strcmp(pt, "stats")) {
         res->type = stats;
