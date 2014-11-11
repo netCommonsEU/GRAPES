@@ -101,6 +101,7 @@ int topo_query_peer_header(struct topo_context *context, const struct peer_cache
   h->protocol = protocol;
   h->type = type;
   len = topo_payload_fill(context, context->pkt + shift, context->pkt_size - shift, local_cache, dst, max_peers, 1);
+  //fprintf(stderr,"[DEBUG] sending TOPO to peer \n");
   return len > 0  ? send_to_peer(nodeid(context->myEntry, 0), dst, context->pkt, shift + len) : len;
 }
 

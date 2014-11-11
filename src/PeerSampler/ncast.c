@@ -206,6 +206,7 @@ static int ncast_parse_data(struct peersampler_context *context, const uint8_t *
   }
 
   if (time_to_send(context)) {
+    //fprintf(stderr,"[DEBUG] Time to send a TOPO message\n");
     int ret = INT_MIN;
     int i;
     int entries = cache_entries(context->local_cache);
