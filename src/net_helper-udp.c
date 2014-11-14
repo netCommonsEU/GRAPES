@@ -312,6 +312,7 @@ int nodeid_cmp(const struct nodeID *s1, const struct nodeID *s2)
 {
 	char ip1[80], ip2[80];
 	int port1,port2,res;
+
 	port1=node_port(s1);
 	port2=node_port(s2);
 	node_ip(s1,ip1,80);
@@ -376,6 +377,8 @@ int node_ip(const struct nodeID *s, char *ip, int len)
 	  perror("inet_ntop");
 		res = -1;
   }
+  if (ip && res <0 && len)
+    ip[0] = '\0';
   return res;
 }
 
