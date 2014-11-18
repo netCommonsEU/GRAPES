@@ -6,6 +6,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <limits.h>
@@ -23,7 +24,13 @@ static int nodeid_peer_cmp(const void *id, const void *p)
 {
   const struct peer *peer = *(struct peer *const *)p;
 
-  return nodeid_cmp( (const struct nodeID *) id, peer->id);
+  if(id && p)
+    return nodeid_cmp( (const struct nodeID *) id, peer->id);
+  else
+  {
+    //fprintf(stderr,"[DEBUG] wrong peer or id\n");
+    return 0;
+  }
 }
 
 static int peerset_check_insert_pos(const struct peerset *h, const struct nodeID *id)

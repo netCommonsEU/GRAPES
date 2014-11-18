@@ -20,7 +20,7 @@ typedef struct peerset PeerSet;
 void peerset_destroy(struct peerset **h);
 
 #define peerset_for_each(pset,p,i) \
-		for(i=0,p= peerset_size(pset) > 0 ? ((const struct peer*)peerset_get_peers(pset)[0]) : NULL; i<peerset_size(pset);i++,p=((const struct peer*)peerset_get_peers(pset)[i]))
+		for(i=0,p= peerset_size(pset) > 0 ? ((struct peer const *)peerset_get_peers(pset)[0]) : NULL; i<peerset_size(pset);i++,p=((struct peer const *)peerset_get_peers(pset)[i]))
 
  /**
   * @brief Allocate a  peer set.
