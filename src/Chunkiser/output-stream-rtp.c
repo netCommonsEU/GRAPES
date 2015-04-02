@@ -21,7 +21,7 @@
 
 #include "int_coding.h"
 #include "payload.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "dechunkiser_iface.h"
 #include "stream-rtp.h"
 
@@ -93,14 +93,14 @@ static int conf_parse(struct dechunkiser_ctx *ctx, const char *config) {
     return 1;
   }
 
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *addr;
 
-    config_value_int(cfg_tags, "verbosity", &(ctx->verbosity));
+    grapes_config_value_int(cfg_tags, "verbosity", &(ctx->verbosity));
     printf_log(ctx, 2, "Verbosity set to %i", ctx->verbosity);
 
-    addr = config_value_str(cfg_tags, "addr");
+    addr = grapes_config_value_str(cfg_tags, "addr");
     if (addr && strlen(addr) < IP_ADDR_LEN) {
       sprintf(ctx->ip, "%s", addr);
     }

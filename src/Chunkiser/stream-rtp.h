@@ -70,7 +70,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
     char tag[8];
 
     sprintf(tag, "stream%d", j);
-    val = config_value_str(cfg_tags, tag);
+    val = grapes_config_value_str(cfg_tags, tag);
     if (val != NULL) {
       if (port_pair_parse(val, &ports[i]) != 0) {
         *error_str = port_pair_failed;
@@ -84,7 +84,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
   }
   /* Ports defined with "audio", "video" */
   if (i == 0) {
-    val = config_value_str(cfg_tags, "audio");
+    val = grapes_config_value_str(cfg_tags, "audio");
     if (val != NULL) {
       if (port_pair_parse(val, &ports[i]) != 0) {
         *error_str = port_pair_failed;
@@ -92,7 +92,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
       }
       i += 2;
     }
-    val = config_value_str(cfg_tags, "video");
+    val = grapes_config_value_str(cfg_tags, "video");
     if (val != NULL) {
       if (port_pair_parse(val, &ports[i]) != 0) {
         *error_str = port_pair_failed;
@@ -106,7 +106,7 @@ static inline int rtp_ports_parse(const struct tag *cfg_tags,
   }
   /* Ports defined with "base" */
   if (i == 0) {
-    if (config_value_int(cfg_tags, "base", &ports[0])) {
+    if (grapes_config_value_int(cfg_tags, "base", &ports[0])) {
       ports[1] = ports[0] + 1;
       ports[2] = ports[1] + 1;
       ports[3] = ports[2] + 1;

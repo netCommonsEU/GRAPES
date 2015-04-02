@@ -38,7 +38,7 @@
 
 #include "int_coding.h"
 #include "payload.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "chunkiser_iface.h"
 #include "stream-rtp.h"
 
@@ -369,31 +369,31 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
   }
 
   /* Parse options */
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
-    config_value_int(cfg_tags, "verbosity", &(ctx->verbosity));
+    grapes_config_value_int(cfg_tags, "verbosity", &(ctx->verbosity));
     printf_log(ctx, 2, "Verbosity set to %i", ctx->verbosity);
 
-    config_value_int(cfg_tags, "rtp_log", &(ctx->rtp_log));
+    grapes_config_value_int(cfg_tags, "rtp_log", &(ctx->rtp_log));
     if (ctx->rtp_log) {
         printf_log(ctx, 2, "Producing parsable rtp log. "
                    "TimeStamps are expressed in 2^-32 s.");
     }
 
-    config_value_int(cfg_tags, "rfc3551", &(ctx->rfc3551));
+    grapes_config_value_int(cfg_tags, "rfc3551", &(ctx->rfc3551));
     printf_log(ctx, 2, "%ssing RFC 3551",
                (ctx->rfc3551 ? "U" : "Not u"));
 
-    if (config_value_int(cfg_tags, "chunk_size", &chunk_size)) {
+    if (grapes_config_value_int(cfg_tags, "chunk_size", &chunk_size)) {
       ctx->max_size = chunk_size + UDP_MAX_SIZE;
     }
     printf_log(ctx, 2, "Chunk size is %d bytes", chunk_size);
     printf_log(ctx, 2, "Maximum chunk size is thus %d bytes", ctx->max_size);
 
-    if (config_value_int(cfg_tags, "max_delay_ms", &max_delay_input)) {
+    if (grapes_config_value_int(cfg_tags, "max_delay_ms", &max_delay_input)) {
       ctx->max_delay = max_delay_input * (1ULL << TS_SHIFT) / 1000;
     }
-    else if (config_value_int(cfg_tags, "max_delay_s", &max_delay_input)) {
+    else if (grapes_config_value_int(cfg_tags, "max_delay_s", &max_delay_input)) {
       ctx->max_delay = max_delay_input * (1ULL << TS_SHIFT);
     }
     printf_log(ctx, 2, "Maximum delay set to %.0f ms.",
