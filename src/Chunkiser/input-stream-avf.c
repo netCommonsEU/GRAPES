@@ -213,7 +213,7 @@ static struct chunkiser_ctx *avf_open(const char *fname, int *period, const char
       if (video_streams++ == 0) {
         desc->streams |= 1ULL << i;
       }
-      fprintf(stderr, "Video Frame Rate = %d/%d --- Period: %lld\n",
+      fprintf(stderr, "Video Frame Rate = %d/%d --- Period: %"PRIu64"\n",
               desc->s->streams[i]->r_frame_rate.num,
               desc->s->streams[i]->r_frame_rate.den,
               av_rescale(1000000, desc->s->streams[i]->r_frame_rate.den, desc->s->streams[i]->r_frame_rate.num));
@@ -316,7 +316,7 @@ static int get_header_size(AVStream *stream)
   return -1;
 }
 
-static uint8_t *avf_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts)
+static uint8_t *avf_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size)
 {
   AVPacket pkt;
   AVRational new_tb;

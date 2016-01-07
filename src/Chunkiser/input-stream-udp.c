@@ -165,7 +165,7 @@ static void udp_close(struct chunkiser_ctx  *s)
   free(s);
 }
 
-static uint8_t *udp_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts)
+static uint8_t *udp_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size)
 {
   int i;
 

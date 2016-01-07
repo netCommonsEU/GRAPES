@@ -211,12 +211,10 @@ static int ncast_parse_data(struct peersampler_context *context, const uint8_t *
     int entries = cache_entries(context->local_cache);
 
     if (context->bootstrap_node &&
-        (entries <= context->cache_size_threshold) &&
+        (cache_entries(context->local_cache) <= context->cache_size_threshold) &&
         (cache_pos(context->local_cache, context->bootstrap_node) < 0)) {
       cache_add(context->local_cache, context->bootstrap_node, NULL, 0);
-	  entries = cache_entries(context->local_cache);
     }
-
     context->query_tokens++;
     if (context->reply_tokens++ > 0) {//on average one reply is sent, if not, do something
       context->query_tokens += context->reply_tokens;

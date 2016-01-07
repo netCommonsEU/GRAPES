@@ -799,6 +799,7 @@ void cache_randomize(const struct peer_cache *c)
     if (j - 1 > i) {
       for (k = i; k < j - 1; k++) {
         int r;
+
         r = (rand() / (RAND_MAX + 1.0)) * (j - k);
         swap_entries(c, k, k + r);
       }

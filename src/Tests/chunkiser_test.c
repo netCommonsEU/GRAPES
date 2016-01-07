@@ -31,7 +31,7 @@ static int verbose;
 static void help(const char *name)
 {
   fprintf(stderr, "Usage: %s [options] <input> <output>\n", name);
-  fprintf(stderr, "options: u:f:rRdlavVUT\n");
+  fprintf(stderr, "options: t:u:f:rRdlavVUT\n");
   fprintf(stderr, "\t -u <port>: use the UDP chunkiser (on <port>) for input\n");
   fprintf(stderr, "\t -P <port>: use the UDP chunkiser (on <port>) for output\n");
   fprintf(stderr, "\t -f <fmt>: use the <fmt> format for ouptut (libav-based)\n");
@@ -78,6 +78,9 @@ static int cmdline_parse(int argc, char *argv[])
         sprintf(port, "port%d", out_udp_port);
         out_udp_port++;
         out_ptr = addopt(out_opts, out_ptr, port, optarg);
+        break;
+      case 't':
+        in_ptr = addopt(in_opts, in_ptr, "chunkiser", "ts");
         break;
       case 'u':
         if (udp_port == 0) {
@@ -232,6 +235,7 @@ int main(int argc, char *argv[])
     return -1;
   }
 
+  ts = timed ? 1: (uint64_t)-1;
   done = 0; id = 0;
   while(!done) {
     int res;
