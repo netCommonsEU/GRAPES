@@ -6,7 +6,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "../config.h"
+#include "grapes_config.h"
 
 int main(int argc, char *argv[])
 {

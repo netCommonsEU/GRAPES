@@ -299,14 +299,14 @@ struct my_hdr_t {
   uint8_t frags;
 } __attribute__((packed));
 
-int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size)
+int send_to_peer(const struct nodeID *from, const struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size)
 {
   struct msghdr msg = {0};
   static struct my_hdr_t my_hdr;
   struct iovec iov[2];
   int res;
 
-  if (buffer_size <= 0) return;
+  if (buffer_size <= 0) return -1;
 
   iov[0].iov_base = &my_hdr;
   iov[0].iov_len = sizeof(struct my_hdr_t);

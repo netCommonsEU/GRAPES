@@ -98,7 +98,7 @@ void bind_msg_type(uint8_t msgtype);
 * @param[in] buffer_size The length of the data buffer.
 * @return The number of bytes sent or -1 if some error occurred.
 */
-int send_to_peer(const struct nodeID *from,const  struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size);
+int send_to_peer(const struct nodeID *from, const struct nodeID *to, const uint8_t *buffer_ptr, int buffer_size);
 
 /**
 * @brief Receive data from a remote peer.

@@ -102,7 +102,7 @@ void peerset_destroy(struct peerset **h)
 	*h = NULL;
 }
 
-int peerset_push_peer(struct peerset *h,const  struct peer *e)
+int peerset_push_peer(struct peerset *h, struct peer *e)
 {
   int pos;
 

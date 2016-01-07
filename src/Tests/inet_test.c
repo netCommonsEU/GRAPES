@@ -18,7 +18,8 @@
 
 int checkIPv4Translation()
 {
-	int res = 0;
+	int res;
+	const char *res1;
 	struct sockaddr_storage s;
 	struct sockaddr_storage c;
 	char *buf = malloc(INET_ADDRSTRLEN);
@@ -31,10 +32,10 @@ int checkIPv4Translation()
 		perror ("inet");
 		return res;
 	}
-	printf("to network %d\n", ((struct sockaddr_in *)&s)->sin_addr);
-	printf("\tTranslating IPv4 address %d...",((struct sockaddr_in *)&s)->sin_addr);
-	res = inet_ntop(AF_INET, &((struct sockaddr_in *)&s)->sin_addr, buf, INET_ADDRSTRLEN);
-	if(!res)
+	printf("to network %d\n", ((struct sockaddr_in *)&s)->sin_addr.s_addr);
+	printf("\tTranslating IPv4 address %d...", ((struct sockaddr_in *)&s)->sin_addr.s_addr);
+	res1 = inet_ntop(AF_INET, &((struct sockaddr_in *)&s)->sin_addr, buf, INET_ADDRSTRLEN);
+	if(!res1)
 	{
 		perror ("inet");
 		return res;
@@ -46,12 +47,12 @@ int checkIPv4Translation()
 
 int checkIPv6Translation()
 {
-	int res = 0, i;
+	int res, i;
+	const char *res1;
 	struct sockaddr_storage s;
 	struct sockaddr_storage c;
 	char *buf = malloc(INET6_ADDRSTRLEN);
-	char *ipv6 = malloc(INET6_ADDRSTRLEN);
-	ipv6 = "fe80:0000:0000:0000:0223:aeff:fe54:ea0c";
+	const char *ipv6 = "fe80:0000:0000:0000:0223:aeff:fe54:ea0c";
 	printf("\tIPv6 Address string %s ", ipv6);
 	res = inet_pton(AF_INET6, ipv6, &((struct sockaddr_in6 *)&s)->sin6_addr);
 	if(!res)
@@ -74,8 +75,8 @@ int checkIPv6Translation()
 		#else
 		    printf("%02x%02x:", (uint8_t) (((struct sockaddr_in6 *)&s)->sin6_addr.__in6_u.__u6_addr8[i]),(uint8_t) (((struct sockaddr_in6 *)&s)->sin6_addr.__in6_u.__u6_addr8[i+1]));
 		#endif
-	res = inet_ntop(AF_INET6, &((struct sockaddr_in6 *)&s)->sin6_addr, buf, INET6_ADDRSTRLEN);
-	if(!res)
+	res1 = inet_ntop(AF_INET6, &((struct sockaddr_in6 *)&s)->sin6_addr, buf, INET6_ADDRSTRLEN);
+	if(!res1)
 	{
 		perror ("inet");
 		return res;

@@ -126,7 +126,7 @@ int peerset_check(const struct peerset *h, const struct nodeID *id);
   */
 void peerset_clear(struct peerset *h, int size);
 
-int peerset_push_peer(struct peerset *h,const  struct peer *e);
+int peerset_push_peer(struct peerset *h, struct peer *e);
 
 struct peer * peerset_pop_peer(struct peerset *h, const struct nodeID *id);
 

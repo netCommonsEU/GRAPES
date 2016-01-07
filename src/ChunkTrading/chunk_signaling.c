@@ -111,7 +111,7 @@ int parseSignaling(const uint8_t *buff, int buff_len, struct nodeID **owner_id,
   return 1;
 }
 
-static int sendSignaling(int type,const  struct nodeID *to_id,
+static int sendSignaling(int type, const struct nodeID *to_id,
                          const struct nodeID *owner_id,
                          const struct chunkID_set *cset, int max_deliver,
                          uint16_t trans_id)
