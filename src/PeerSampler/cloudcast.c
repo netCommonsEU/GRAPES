@@ -25,7 +25,7 @@
 #include "../Cache/topocache.h"
 #include "../Cache/cloudcast_proto.h"
 #include "../Cache/proto.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "grapes_msg_types.h"
 
 #define DEFAULT_CACHE_SIZE 20
@@ -122,21 +122,21 @@ static struct peersampler_context* cloudcast_init(struct nodeID *myID, const voi
   if (!con) return NULL;
   con->local_node = myID;
 
-  cfg_tags = config_parse(config);
-  res = config_value_int(cfg_tags, "cache_size", &(con->cache_size));
+  cfg_tags = grapes_config_parse(config);
+  res = grapes_config_value_int(cfg_tags, "cache_size", &(con->cache_size));
   if (!res) {
     con->cache_size = DEFAULT_CACHE_SIZE;
   }
-  res = config_value_int(cfg_tags, "sent_entries", &(con->sent_entries));
+  res = grapes_config_value_int(cfg_tags, "sent_entries", &(con->sent_entries));
   if (!res) {
     con->sent_entries = DEFAULT_PARTIAL_VIEW_SIZE;
   }
-  res = config_value_int(cfg_tags, "max_silence", &(con->max_silence));
+  res = grapes_config_value_int(cfg_tags, "max_silence", &(con->max_silence));
   if (!res) {
     con->max_silence = 0;
   }
 
-  res = config_value_double(cfg_tags, "cloud_respawn_prob", &(con->cloud_respawn_prob));
+  res = grapes_config_value_double(cfg_tags, "cloud_respawn_prob", &(con->cloud_respawn_prob));
   if (!res) {
     con->max_silence = 0;
   }

@@ -16,6 +16,7 @@ OBJS += \
        input-stream-ts.o        \
        input-stream-udp.o       \
        output-stream-raw.o      \
+       output-stream-rtp.o      \
        output-stream-udp.o
 endif
 
@@ -25,6 +26,10 @@ OBJS += input-stream-avf.o input-stream-ipb.o output-stream-avf.o chunkiser_attr
 ifdef GTK
 OBJS += output-stream-play.o
 endif
+endif
+
+ifdef PJDIR
+OBJS += input-stream-rtp.o
 endif
 
 all: libchunkiser.a
@@ -40,4 +45,9 @@ ifdef GTK
 output-stream-play.o: CPPFLAGS += `pkg-config --cflags gtk+-2.0`
 CPPFLAGS += -DGTK
 endif
+endif
+
+ifdef PJDIR
+input-stream-rtp.o: CFLAGS += -I$(PJDIR)/include 
+CPPFLAGS += -DRTP
 endif

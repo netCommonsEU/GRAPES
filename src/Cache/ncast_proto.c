@@ -59,6 +59,7 @@ int ncast_query(struct ncast_proto_context *context, const struct peer_cache *lo
 
   dst = rand_peer(local_cache, NULL, 0);
   if (dst == NULL) {
+    //fprintf(stderr,"[DEBUG] Megaerror, no peer selected for TOPO\n");
     return 0;
   }
   return topo_query_peer(context->context, local_cache, dst, MSG_TYPE_TOPOLOGY, NCAST_QUERY, 0);

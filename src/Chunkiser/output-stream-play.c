@@ -16,8 +16,8 @@
 
 #include "int_coding.h"
 #include "payload.h"
-#include "config.h"
-//#include "ffmpeg_compat.h"
+#include "grapes_config.h"
+#include "ffmpeg_compat.h"
 #include "dechunkiser_iface.h"
 
 #ifndef MAX_STREAMS
@@ -715,11 +715,11 @@ static struct dechunkiser_ctx *play_init(const char * fname, const char * config
 
   memset(out, 0, sizeof(struct dechunkiser_ctx));
   out->selected_streams = 0x01;
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *format;
 
-    format = config_value_str(cfg_tags, "media");
+    format = grapes_config_value_str(cfg_tags, "media");
     if (format) {
       if (!strcmp(format, "video")) {
         out->selected_streams = 0x01;

@@ -17,10 +17,12 @@
 #include "net_helpers.h"
 #include "grapes_msg_types.h"
 
-static const char *my_addr = "127.0.0.1";
+static const char *my_addr;
 static int port = 6666;
 static int dst_port;
 static const char *dst_ip;
+extern enum L3PROTOCOL {IPv4, IPv6} l3;
+
 
 #define BUFFSIZE 1024
 
@@ -46,6 +48,8 @@ static struct nodeID *init(void)
 {
   struct nodeID *myID;
 
+  my_addr = iface_addr(my_addr);
+
   myID = net_helper_init(my_addr, port, "");
   if (myID == NULL) {
     fprintf(stderr, "Error creating my socket (%s:%d)!\n", my_addr, port);
@@ -61,7 +65,7 @@ static void cmdline_parse(int argc, char *argv[])
 {
   int o;
 
-  while ((o = getopt(argc, argv, "p:i:P:I:")) != -1) {
+  while ((o = getopt(argc, argv, "6p:i:P:I: ")) != -1) {
     switch(o) {
       case 'p':
         dst_port = atoi(optarg);
@@ -73,8 +77,11 @@ static void cmdline_parse(int argc, char *argv[])
         port =  atoi(optarg);
         break;
       case 'I':
-        my_addr = iface_addr(optarg);
+        my_addr = strdup(optarg);
         break;
+      case '6':
+    	l3 = IPv6;
+    	break;
       default:
         fprintf(stderr, "Error: unknown option %c\n", o);
 

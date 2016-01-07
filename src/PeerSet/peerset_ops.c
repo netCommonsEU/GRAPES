@@ -6,6 +6,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <limits.h>
@@ -15,7 +16,7 @@
 #include "peerset.h"
 #include "chunkidset.h"
 #include "net_helper.h"
-#include "config.h"
+#include "grapes_config.h"
 
 #define DEFAULT_SIZE_INCREMENT 32
 
@@ -23,7 +24,13 @@ static int nodeid_peer_cmp(const void *id, const void *p)
 {
   const struct peer *peer = *(struct peer *const *)p;
 
-  return nodeid_cmp( (const struct nodeID *) id, peer->id);
+  if(id && p)
+    return nodeid_cmp( (const struct nodeID *) id, peer->id);
+  else
+  {
+    //fprintf(stderr,"[DEBUG] wrong peer or id\n");
+    return 0;
+  }
 }
 
 static int peerset_check_insert_pos(const struct peerset *h, const struct nodeID *id)
@@ -69,12 +76,12 @@ struct peerset *peerset_init(const char *config)
     return NULL;
   }
   p->n_elements = 0;
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (!cfg_tags) {
     free(p);
     return NULL;
   }
-  res = config_value_int(cfg_tags, "size", &p->size);
+  res = grapes_config_value_int(cfg_tags, "size", &p->size);
   if (!res) {
     p->size = 0;
   }
@@ -88,7 +95,41 @@ struct peerset *peerset_init(const char *config)
   return p;
 }
 
-int peerset_add_peer(struct peerset *h, struct nodeID *id)
+void peerset_destroy(struct peerset **h)
+{
+	peerset_clear(*h,0);
+	free(*h);
+	*h = NULL;
+}
+
+int peerset_push_peer(struct peerset *h,const  struct peer *e)
+{
+  int pos;
+
+  pos = peerset_check_insert_pos(h, e->id);
+  if (pos < 0){
+    return 0;
+  }
+
+  if (h->n_elements == h->size) {
+    struct peer **res;
+
+    res = realloc(h->elements, (h->size + DEFAULT_SIZE_INCREMENT) * sizeof(struct peer *));
+    if (res == NULL) {
+      return -1;
+    }
+    h->size += DEFAULT_SIZE_INCREMENT;
+    h->elements = res;
+  }
+
+  memmove(&h->elements[pos + 1], &h->elements[pos] , ((h->n_elements++) - pos) * sizeof(struct peer *));
+
+  h->elements[pos] = e;;
+
+  return h->n_elements;
+}
+
+int peerset_add_peer(struct peerset *h,const  struct nodeID *id)
 {
   struct peer *e;
   int pos;
@@ -146,6 +187,17 @@ struct peer *peerset_get_peer(const struct peerset *h, const struct nodeID *id)
 {
   int i = peerset_check(h,id);
   return (i<0) ? NULL : h->elements[i];
+}
+
+struct peer *peerset_pop_peer(struct peerset *h, const struct nodeID *id){
+  int i = peerset_check(h,id);
+  if (i >= 0) {
+    struct peer *e = h->elements[i];
+    memmove(&h->elements[i], &h->elements[i+1], ((h->n_elements--) - (i+1)) * sizeof(struct peer *));
+
+    return e;
+  }
+  return NULL;
 }
 
 int peerset_remove_peer(struct peerset *h, const struct nodeID *id){

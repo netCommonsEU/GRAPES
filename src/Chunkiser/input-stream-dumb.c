@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include "chunkiser_iface.h"
-#include "config.h"
+#include "grapes_config.h"
 
 struct chunkiser_ctx {
   int loop;	//loop on input file infinitely
@@ -45,13 +45,13 @@ static struct chunkiser_ctx *dumb_open(const char *fname, int *period, const cha
 
   *period = 0;
   res->chunk_size = DEFAULT_CHUNK_SIZE;
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *access_mode;
 
-    config_value_int(cfg_tags, "loop", &res->loop);
-    config_value_int(cfg_tags, "chunk_size", &res->chunk_size);
-    access_mode = config_value_str(cfg_tags, "mode");
+    grapes_config_value_int(cfg_tags, "loop", &res->loop);
+    grapes_config_value_int(cfg_tags, "chunk_size", &res->chunk_size);
+    access_mode = grapes_config_value_str(cfg_tags, "mode");
     if (access_mode && !strcmp(access_mode, "nonblock")) {
 #ifndef _WIN32
       fcntl(res->fds[0], F_SETFL, O_NONBLOCK);

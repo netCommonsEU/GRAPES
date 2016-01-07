@@ -3,8 +3,11 @@ BASE = ..
 endif
 CFGDIR ?= .
 
-SUBDIRS = ChunkIDSet ChunkTrading TopologyManager ChunkBuffer PeerSet Scheduler Cache PeerSampler Utils Chunkiser CloudSupport
-COMMON_OBJS = config.o
+SUBDIRS = ChunkIDSet ChunkTrading TopologyManager ChunkBuffer PeerSet Scheduler Cache PeerSampler Utils Chunkiser
+ifneq ($(ARCH),win32)
+  SUBDIRS += CloudSupport
+endif
+COMMON_OBJS = grapes_config.o
 
 OBJ_LSTS = $(addsuffix /objs.lst, $(SUBDIRS))
 
@@ -13,7 +16,7 @@ OBJ_LSTS = $(addsuffix /objs.lst, $(SUBDIRS))
 all: libgrapes.a
 
 $(OBJ_LSTS):
-	$(MAKE) -C $(dir $@) objs.lst FFDIR=$(FFDIR) GTK=$(GTK)
+	$(MAKE) -C $(dir $@) objs.lst FFDIR=$(FFDIR) GTK=$(GTK) PJDIR=$(PJDIR)
 
 libgrapes.a: $(OBJ_LSTS) $(COMMON_OBJS)
 	$(AR) rcs libgrapes.a `cat $(OBJ_LSTS)` $(COMMON_OBJS)

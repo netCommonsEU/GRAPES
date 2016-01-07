@@ -8,6 +8,7 @@
 #define VIDEO_PAYLOAD_HEADER_SIZE 1 + 2 + 2 + 2 + 2 + 1 // 1 Frame type + 2 width + 2 height + 2 frame rate num + 2 frame rate den + 1 number of frames
 #define FRAME_HEADER_SIZE (3 + 4 + 1)	// 3 Frame size + 4 PTS + 1 DeltaTS
 #define UDP_PAYLOAD_HEADER_SIZE (2 + 1)   // 2 size + 1 stream
+#define RTP_PAYLOAD_PER_PKT_HEADER_SIZE (2 + 1)   // 2 size + 1 stream
 
 static inline void frame_header_parse(const uint8_t *data, int *size, int64_t *pts, int64_t *dts)
 {
@@ -85,4 +86,30 @@ static inline void udp_payload_header_write(uint8_t *data, int size, uint8_t str
 {
   int16_cpy(data, size);
   data[2] = stream;
+}
+
+/* RTP chunk payload format:
+   0    1    2    3
+   +----+----+----+-------------
+   |  size   |s_id| data (RTP packet with header)
+   +---------+----+-------------
+   |  ...
+   +---------+------------------
+   |  size   |s_id| data ...
+   +---------+----+-------------
+   size: size of the following `data` field (16 bits)
+   s_id: stream identifier (8 bits)
+   There's no need to carry total number of packets, because total length
+   is known at dechunkising time
+ */
+
+static inline void rtp_payload_per_pkt_header_set(uint8_t *data, uint16_t size, uint8_t stream) {
+  int16_cpy(data, size);
+  *(data + 2) = stream;
+}
+
+static inline void rtp_payload_per_pkt_header_parse(uint8_t *data, int *size, int *stream)
+{
+  *size = int16_rcpy(data);
+  *stream = *(data + 2);
 }

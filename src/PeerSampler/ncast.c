@@ -18,7 +18,7 @@
 #include "../Cache/topocache.h"
 #include "../Cache/ncast_proto.h"
 #include "../Cache/proto.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "grapes_msg_types.h"
 
 #define DEFAULT_CACHE_SIZE 10
@@ -101,16 +101,16 @@ static struct peersampler_context* init(struct nodeID *myID, const void *metadat
   context = ncast_context_init();
   if (!context) return NULL;
 
-  cfg_tags = config_parse(config);
-  config_value_int_default(cfg_tags, "cache_size", &context->cache_size, DEFAULT_CACHE_SIZE);
-  config_value_int_default(cfg_tags, "max_timestamp", &max_timestamp, DEFAULT_MAX_TIMESTAMP);
-  config_value_int_default(cfg_tags, "period", &context->period, DEFAULT_PERIOD);
-  config_value_int_default(cfg_tags, "bootstrap_period", &context->bootstrap_period, DEFAULT_BOOTSTRAP_PERIOD);
-  config_value_int_default(cfg_tags, "bootstrap_cycles", &context->bootstrap_cycles, DEFAULT_BOOTSTRAP_CYCLES);
-  config_value_int_default(cfg_tags, "adaptive", &context->adaptive, plus_features);
-  config_value_int_default(cfg_tags, "restart", &context->restart, plus_features);
-  config_value_int_default(cfg_tags, "randomize", &context->randomize, plus_features);
-  config_value_int_default(cfg_tags, "slowstart", &context->slowstart, plus_features);
+  cfg_tags = grapes_config_parse(config);
+  grapes_config_value_int_default(cfg_tags, "cache_size", &context->cache_size, DEFAULT_CACHE_SIZE);
+  grapes_config_value_int_default(cfg_tags, "max_timestamp", &max_timestamp, DEFAULT_MAX_TIMESTAMP);
+  grapes_config_value_int_default(cfg_tags, "period", &context->period, DEFAULT_PERIOD);
+  grapes_config_value_int_default(cfg_tags, "bootstrap_period", &context->bootstrap_period, DEFAULT_BOOTSTRAP_PERIOD);
+  grapes_config_value_int_default(cfg_tags, "bootstrap_cycles", &context->bootstrap_cycles, DEFAULT_BOOTSTRAP_CYCLES);
+  grapes_config_value_int_default(cfg_tags, "adaptive", &context->adaptive, plus_features);
+  grapes_config_value_int_default(cfg_tags, "restart", &context->restart, plus_features);
+  grapes_config_value_int_default(cfg_tags, "randomize", &context->randomize, plus_features);
+  grapes_config_value_int_default(cfg_tags, "slowstart", &context->slowstart, plus_features);
   free(cfg_tags);
 
   context->local_cache = cache_init(context->cache_size, metadata_size, max_timestamp);
@@ -206,6 +206,7 @@ static int ncast_parse_data(struct peersampler_context *context, const uint8_t *
   }
 
   if (time_to_send(context)) {
+    //fprintf(stderr,"[DEBUG] Time to send a TOPO message\n");
     int ret = INT_MIN;
     int i;
     int entries = cache_entries(context->local_cache);

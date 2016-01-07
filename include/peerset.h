@@ -17,6 +17,11 @@
 */
 typedef struct peerset PeerSet;
 
+void peerset_destroy(struct peerset **h);
+
+#define peerset_for_each(pset,p,i) \
+		for(i=0,p= peerset_size(pset) > 0 ? ((struct peer const *)peerset_get_peers(pset)[0]) : NULL; i<peerset_size(pset);i++,p=((struct peer const *)peerset_get_peers(pset)[i]))
+
  /**
   * @brief Allocate a  peer set.
   * 
@@ -41,7 +46,7 @@ struct peerset *peerset_init(const char *config);
   * @return > 0 if the peer is correctly inserted in the set, 0 if a peer with
   *         the same nodeID is already in the set, < 0 on error
   */
-int peerset_add_peer(struct peerset *h, struct nodeID *id);
+int peerset_add_peer(struct peerset *h,const  struct nodeID *id);
 
  /**
   * @brief Add peers to the set.
@@ -120,5 +125,9 @@ int peerset_check(const struct peerset *h, const struct nodeID *id);
   *                 in the set; 0 if such a number is not known.
   */
 void peerset_clear(struct peerset *h, int size);
+
+int peerset_push_peer(struct peerset *h,const  struct peer *e);
+
+struct peer * peerset_pop_peer(struct peerset *h, const struct nodeID *id);
 
 #endif	/* PEERSET_H */

@@ -21,7 +21,7 @@
 
 #include "int_coding.h"
 #include "payload.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "chunkiser_iface.h"
 
 #define UDP_PORTS_NUM_MAX 10
@@ -90,7 +90,7 @@ static const int *ports_parse(const char *config)
   int i = 0;
   struct tag *cfg_tags;
 
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     int j;
 
@@ -98,7 +98,7 @@ static const int *ports_parse(const char *config)
       char tag[8];
 
       sprintf(tag, "port%d", j);
-      if (config_value_int(cfg_tags, tag, &res[i])) {
+      if (grapes_config_value_int(cfg_tags, tag, &res[i])) {
         i++;
       }
     }

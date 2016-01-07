@@ -12,8 +12,8 @@
 #include "libav-compat.h"
 #include "int_coding.h"
 #include "payload.h"
-#include "config.h"
-//#include "ffmpeg_compat.h"
+#include "grapes_config.h"
+#include "ffmpeg_compat.h"
 #include "dechunkiser_iface.h"
 
 struct dechunkiser_ctx {
@@ -183,15 +183,15 @@ static struct dechunkiser_ctx *avf_init(const char *fname, const char *config)
   } else {
     out->output_file = strdup("/dev/stdout");
   }
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *format;
 
-    format = config_value_str(cfg_tags, "format");
+    format = grapes_config_value_str(cfg_tags, "format");
     if (format) {
       out->output_format = strdup(format);
     }
-    format = config_value_str(cfg_tags, "media");
+    format = grapes_config_value_str(cfg_tags, "media");
     if (format) {
       if (!strcmp(format, "video")) {
         out->selected_streams = 0x01;

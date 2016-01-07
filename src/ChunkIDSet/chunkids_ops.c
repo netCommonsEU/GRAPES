@@ -13,7 +13,7 @@
 #include "chunkids_private.h"
 #include "chunkids_iface.h"
 #include "chunkidset.h"
-#include "config.h"
+#include "grapes_config.h"
 
 #define DEFAULT_SIZE_INCREMENT 32
 
@@ -34,12 +34,12 @@ struct chunkID_set *chunkID_set_init(const char *config)
     return NULL;
   }
   p->n_elements = 0;
-  cfg_tags = config_parse(config);
+  cfg_tags = grapes_config_parse(config);
   if (!cfg_tags) {
     free(p);
     return NULL;
   }
-  res = config_value_int(cfg_tags, "size", &p->size);
+  res = grapes_config_value_int(cfg_tags, "size", &p->size);
   if (!res) {
     p->size = 0;
   }
@@ -54,7 +54,7 @@ struct chunkID_set *chunkID_set_init(const char *config)
   p->enc = &prio_encoding;
   p->ops = &list_ops;
   p->type = CIST_PRIORITY;
-  type = config_value_str(cfg_tags, "type");
+  type = grapes_config_value_str(cfg_tags, "type");
   if (type) {
     if (!memcmp(type, "priority", strlen(type) - 1)) {
       p->enc = &prio_encoding;

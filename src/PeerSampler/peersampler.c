@@ -6,7 +6,7 @@
 #include "net_helper.h"
 #include "peersampler.h"
 #include "peersampler_iface.h"
-#include "config.h"
+#include "grapes_config.h"
 
 extern struct peersampler_iface ncast;
 extern struct peersampler_iface ncastplus;
@@ -30,8 +30,8 @@ struct psample_context* psample_init(struct nodeID *myID, const void *metadata, 
   if (!tc) return NULL;
 
   tc->ps = &ncastplus;
-  cfg_tags = config_parse(config);
-  proto = config_value_str(cfg_tags, "protocol");
+  cfg_tags = grapes_config_parse(config);
+  proto = grapes_config_value_str(cfg_tags, "protocol");
   if (proto) {
     if (strcmp(proto, "newscast") == 0) {
       tc->ps = &ncast;

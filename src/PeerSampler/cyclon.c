@@ -17,7 +17,7 @@
 #include "../Cache/topocache.h"
 #include "../Cache/cyclon_proto.h"
 #include "../Cache/proto.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "grapes_msg_types.h"
 
 #define DEFAULT_CACHE_SIZE 10
@@ -88,24 +88,24 @@ static struct peersampler_context* cyclon_init(struct nodeID *myID, const void *
   con = cyclon_context_init();
   if (!con) return NULL;
 
-  cfg_tags = config_parse(config);
-  res = config_value_int(cfg_tags, "cache_size", &(con->cache_size));
+  cfg_tags = grapes_config_parse(config);
+  res = grapes_config_value_int(cfg_tags, "cache_size", &(con->cache_size));
   if (!res) {
     con->cache_size = DEFAULT_CACHE_SIZE;
   }
-  res = config_value_int(cfg_tags, "sent_entries", &(con->sent_entries));
+  res = grapes_config_value_int(cfg_tags, "sent_entries", &(con->sent_entries));
   if (!res) {
     con->sent_entries = con->cache_size / 2;
   }
-  res = config_value_int(cfg_tags, "period", &con->period);
+  res = grapes_config_value_int(cfg_tags, "period", &con->period);
   if (!res) {
     con->period = DEFAULT_PERIOD;
   }
-  res = config_value_int(cfg_tags, "bootstrap_period", &con->bootstrap_period);
+  res = grapes_config_value_int(cfg_tags, "bootstrap_period", &con->bootstrap_period);
   if (!res) {
     con->bootstrap_period = DEFAULT_BOOTSTRAP_PERIOD;
   }
-  res = config_value_int(cfg_tags, "bootstrap_cycles", &con->bootstrap_cycles);
+  res = grapes_config_value_int(cfg_tags, "bootstrap_cycles", &con->bootstrap_cycles);
   if (!res) {
     con->bootstrap_cycles = DEFAULT_BOOTSTRAP_CYCLES;
   }

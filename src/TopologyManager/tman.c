@@ -16,7 +16,7 @@
 #include "../Cache/blist_proto.h"
 #include "../Cache/proto.h"
 #include "grapes_msg_types.h"
-#include "config.h"
+#include "grapes_config.h"
 #include "topman_iface.h"
 
 #define TMAN_INIT_PEERS 10 // max # of neighbors in local cache (should be >= than the next)
@@ -70,21 +70,21 @@ static int tmanInit(struct nodeID *myID, void *metadata, int metadata_size, rank
 	struct tag *cfg_tags;
 	int res;
 
-	cfg_tags = config_parse(config);
-	res = config_value_int(cfg_tags, "cache_size", &init_cache_size);
+	cfg_tags = grapes_config_parse(config);
+	res = grapes_config_value_int(cfg_tags, "cache_size", &init_cache_size);
 	if (!res) {
 		init_cache_size = TMAN_INIT_PEERS;
 	}
 	cache_size = init_cache_size;
-	res = config_value_int(cfg_tags, "max_preferred_peers", &max_preferred_peers);
+	res = grapes_config_value_int(cfg_tags, "max_preferred_peers", &max_preferred_peers);
 	if (!res) {
 		max_preferred_peers = TMAN_MAX_PREFERRED_PEERS;
 	}
-	res = config_value_int(cfg_tags, "max_gossiping_peers", &max_gossiping_peers);
+	res = grapes_config_value_int(cfg_tags, "max_gossiping_peers", &max_gossiping_peers);
 	if (!res) {
 		max_gossiping_peers = TMAN_MAX_GOSSIPING_PEERS;
 	}
-	res = config_value_int(cfg_tags, "period", &default_period);
+	res = grapes_config_value_int(cfg_tags, "period", &default_period);
 	if (!res) {
 		default_period = TMAN_STD_PERIOD;
 	}

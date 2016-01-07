@@ -45,7 +45,7 @@ int parseChunkMsg(const uint8_t *buff, int buff_len, struct chunk *c, uint16_t *
  */
 //TO CHECK AND CORRECT
 //XXX Send data is in char while our buffer is in uint8
-int sendChunk(struct nodeID *to, const struct chunk *c, uint16_t transid)
+int sendChunk(const struct nodeID *to, const struct chunk *c, uint16_t transid)
 {
   int buff_len;
   uint8_t *buff;
