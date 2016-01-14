@@ -62,7 +62,7 @@ int checkIPv6Translation()
 	}
 	printf("to network ");
 	for (i = 0; i < 16; i+=2)
-	#ifdef _WIN32
+        #if defined(_WIN32) || defined(__APPLE_CC__)
 	   printf("%02x%02x:", (unsigned char) (((struct sockaddr_in6 *)&s)->sin6_addr.s6_addr[i]),(unsigned char) (((struct sockaddr_in6 *)&s)->sin6_addr.s6_addr[i+1]));
 	#else
 	    printf("%02x%02x:", (uint8_t) (((struct sockaddr_in6 *)&s)->sin6_addr.__in6_u.__u6_addr8[i]),(uint8_t) (((struct sockaddr_in6 *)&s)->sin6_addr.__in6_u.__u6_addr8[i+1]));
@@ -70,7 +70,7 @@ int checkIPv6Translation()
 	    printf("\n");
 	printf("\tIPv6 Address ");
 	for (i = 0; i < 16; i+=2)
-		#ifdef _WIN32
+               #if defined(_WIN32) || defined(__APPLE_CC__)
 		   printf("%02x%02x:", (unsigned char) (((struct sockaddr_in6 *)&s)->sin6_addr.s6_addr[i]),(unsigned char) (((struct sockaddr_in6 *)&s)->sin6_addr.s6_addr[i+1]));
 		#else
 		    printf("%02x%02x:", (uint8_t) (((struct sockaddr_in6 *)&s)->sin6_addr.__in6_u.__u6_addr8[i]),(uint8_t) (((struct sockaddr_in6 *)&s)->sin6_addr.__in6_u.__u6_addr8[i+1]));
