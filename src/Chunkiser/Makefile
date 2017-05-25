@@ -28,7 +28,10 @@ OBJS += output-stream-play.o
 endif
 endif
 
-ifdef PJDIR
+ifeq ($(strip $(PJDIR)),)
+OBJS += rtp_rtcp.o
+OBJS += input-stream-rtp.o
+else
 OBJS += input-stream-rtp.o
 endif
 
@@ -47,7 +50,9 @@ CPPFLAGS += -DGTK
 endif
 endif
 
-ifdef PJDIR
-input-stream-rtp.o: CFLAGS += -I$(PJDIR)/include 
+ifeq ($(strip $(PJDIR)),)
 CPPFLAGS += -DRTP
+else
+input-stream-rtp.o: CFLAGS += -I$(PJDIR)/include
+CPPFLAGS += -DRTP -DPJLIB_RTP
 endif

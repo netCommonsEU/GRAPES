@@ -26,10 +26,14 @@
 #pragma message "RTP Chunkiser compiling in debug mode"
 #endif
 
+#ifdef PJLIB_RTP
 #pragma GCC diagnostic ignored "-Wcast-qual"  // Ignore warnings from pj libs
 #include <pjlib.h>
 #include <pjmedia.h>
 #pragma GCC diagnostic pop  // Restore warnings to command line options
+#else
+#include "rtp_rtcp.h"
+#endif
 
 #ifndef DEBUG
 #define NDEBUG
@@ -58,8 +62,10 @@ struct rtp_ntp_ts {
 };
 
 struct rtp_stream {
+#ifdef PJLIB_RTP
   struct pjmedia_rtp_session rtp;
   struct pjmedia_rtcp_session rtcp;
+#endif
   struct rtp_ntp_ts tss[2];
   int last_updated_ts;  // index in tss
 };
@@ -209,20 +215,28 @@ static uint64_t ts_max(uint64_t a, uint64_t b) {
 /* Initializes PJSIP. Returns 0 on success, nonzero on failure */
 static int rtplib_init(struct chunkiser_ctx *ctx) {
   int i;
+#ifdef PJLIB_RTP
   struct pjmedia_rtp_session_setting rtp_s;
   struct pjmedia_rtcp_session_setting rtcp_s;
 
+  printf_log(ctx, 2, "PJLIB initialization");
   pj_init();
 
   rtp_s.flags = 0;
   pjmedia_rtcp_session_setting_default(&rtcp_s);
   rtcp_s.clock_rate = 1;  // Just to avoid Floating point exception
+#else
+  printf_log(ctx, 2, "RTP internal implementation initialized (PJSIP not used)");
+#endif /* PJLIB_RTP */
+
   for (i=0; i<ctx->fds_len/2; i++) {
+#ifdef PJLIB_RTP
     pjmedia_rtcp_init2(&ctx->streams[i].rtcp, &rtcp_s);
     if (pjmedia_rtp_session_init2(&ctx->streams[i].rtp, rtp_s) != PJ_SUCCESS) {
       printf_log(ctx, 0, "Error initialising pjmedia RTP session");
       return 1;
     }
+#endif /* PJLIB_RTP */
     ctx->streams[i].last_updated_ts = 0;
     ctx->streams[i].tss[0].ntp = ctx->streams[i].tss[0].rtp = 0;
     ctx->streams[i].tss[1].ntp = ctx->streams[i].tss[1].rtp = 0;
@@ -233,10 +247,16 @@ static int rtplib_init(struct chunkiser_ctx *ctx) {
 
 /* Inspects the given RTP packet and fills `info` accordingly. */
 static void rtp_packet_received(struct chunkiser_ctx *ctx, int stream_id, uint8_t *pkt, int size, struct rtp_info *info) {
+#ifdef PJLIB_RTP
   const struct pjmedia_rtp_hdr *rtp_h;
+#else
+  const struct rtp_hdr *rtp_h;
+#endif
   const void *rtp_p;
   int rtp_p_len;
   struct rtp_stream *stream = &ctx->streams[stream_id];
+
+#ifdef PJLIB_RTP
   if (pjmedia_rtp_decode_rtp(&stream->rtp,
                              pkt, size,
                              &rtp_h, &rtp_p, &rtp_p_len)
@@ -248,8 +268,21 @@ static void rtp_packet_received(struct chunkiser_ctx *ctx, int stream_id, uint8_
                "type:%u, marker:%u, seq:%u, timestamp:%u",
                ntohl(rtp_h->ssrc), rtp_h->pt, rtp_h->m, ntohs(rtp_h->seq),
                ntohl(rtp_h->ts));
+#else
+  if (rtp_rtcp_decode_rtp(pkt, size, &rtp_h, &rtp_p, &rtp_p_len) ==
+      RTP_RTCP_SUCCESS) {
+    printf_log(ctx, 2, "  -> valid RTP packet from ssrc:%u with "
+               "type:%u, marker:%u, seq:%u, timestamp:%u",
+               ntohl(rtp_h->ssrc), RTP_HDR_P(rtp_h), RTP_HDR_M(rtp_h),
+               ntohs(rtp_h->seq), ntohl(rtp_h->ts));
+#endif
+
     info->valid = 1;
+#ifdef PJLIB_RTP
     info->marker = rtp_h->m;
+#else
+    info->marker = RTP_HDR_M(rtp_h);
+#endif
     info->ntp_ts = rtptontp(ctx, stream, ntohl(rtp_h->ts));
   }
   else {
@@ -262,7 +295,8 @@ static void rtp_packet_received(struct chunkiser_ctx *ctx, int stream_id, uint8_
 /* Updates the context upon reception of RTCP packets. */
 static void rtcp_packet_received(struct chunkiser_ctx *ctx, int stream_id, uint8_t *pkt, int size) {
   struct rtp_stream *stream = &ctx->streams[stream_id];
-  printf_log(ctx, 2, "  -> RTCP packet");
+
+#ifdef PJLIB_RTP
   pjmedia_rtcp_rx_rtcp(&stream->rtcp, pkt, size);
 
   // Parse RTCP packet with low-level API.
@@ -287,6 +321,30 @@ static void rtcp_packet_received(struct chunkiser_ctx *ctx, int stream_id, uint8
       p += len;
     }
   }
+#else
+  uint8_t *p, *p_end;
+  p = pkt;
+  p_end = p + size;
+
+  printf_log(ctx, 2, "  -> RTCP packet");
+
+  while (p < p_end) {
+    const struct rtcp_cmn_hdr *common = (const struct rtcp_cmn_hdr *) p;
+    uint32_t len = (ntohs(common->length) + 1) * 4;
+
+    if (common->pt == RTCP_SR) {
+      const struct rtcp_sr *sr = (const struct rtcp_sr *)
+        (p + sizeof(struct rtcp_cmn_hdr));
+      stream->last_updated_ts = (stream->last_updated_ts + 1) % 2;
+      stream->tss[stream->last_updated_ts].rtp =
+        ntohl(sr->rtp_ts);
+      stream->tss[stream->last_updated_ts].ntp =
+        (((uint64_t)ntohl(sr->ntp_sec)) << TS_SHIFT)
+        + (((uint64_t)ntohl(sr->ntp_frac)) & TS_FRACT_MASK);
+    }
+    p += len;
+  }
+#endif
   return;
 }
 
@@ -496,7 +554,8 @@ static void rtp_close(struct chunkiser_ctx  *ctx) {
 
   In case of error, returns NULL and size=-1
  */
-static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint64_t *ts) {
+static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint64_t *ts,
+                                      void **attr, int *attr_size) {
   int status;  // -1: buffer full, send now
                //  0: Go on, do not send;
                //  1: send after loop;
@@ -537,7 +596,7 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
             printf_log(ctx, 2, "  packet has NTP timestamp (seconds) %llu",
                        info.ntp_ts >> TS_SHIFT);
             if (ctx->rtp_log) {
-              fprintf(stderr, "[RTP_LOG] timestamp=%llu size=%d port_id=%d\n", info.ntp_ts, new_pkt_size, i);
+              fprintf(stderr, "[RTP_LOG] timestamp=%lu size=%d port_id=%d\n", info.ntp_ts, new_pkt_size, i);
             }
             // update chunk timestamp
             if (info.ntp_ts == 0ULL) {
