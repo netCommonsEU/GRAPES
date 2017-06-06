@@ -236,7 +236,13 @@ void peerset_clear(struct peerset *h, int size)
 
   h->n_elements = 0;
   h->size = size;
-  h->elements = realloc(h->elements, size * sizeof(struct peer *));
+  if (h->size)
+	  h->elements = realloc(h->elements, size * sizeof(struct peer *));
+  else
+  {
+	  free(h->elements);
+	  h->elements = NULL;
+  }
   if (h->elements == NULL) {
     h->size = 0;
   }

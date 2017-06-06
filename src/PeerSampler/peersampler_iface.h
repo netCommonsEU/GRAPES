@@ -13,6 +13,7 @@ struct peersampler_iface {
   int (*grow_neighbourhood)(struct peersampler_context *context, int n);
   int (*shrink_neighbourhood)(struct peersampler_context *context, int n);
   int (*remove_neighbour)(struct peersampler_context *context, const struct nodeID *neighbour);
+  void (*destroy)(struct peersampler_context **context);
 };
 
 #endif	/* PEERSAMPLER_IFACE */

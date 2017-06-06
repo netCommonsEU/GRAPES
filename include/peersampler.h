@@ -168,4 +168,5 @@ int psample_add_peer(struct psample_context *tc, struct nodeID *neighbour, const
 */
 int psample_parse_data(struct psample_context *tc, const uint8_t *buff, int len);
 
+void psample_destroy(struct psample_context **context);
 #endif /* PEERSAMPLER_H */

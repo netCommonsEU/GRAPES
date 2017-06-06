@@ -72,3 +72,14 @@ int ncast_proto_metadata_update(struct ncast_proto_context *context, const void 
 int ncast_proto_myentry_update(struct ncast_proto_context *context, struct nodeID *s, int dts, const void *meta, int meta_size) {
   return topo_proto_myentry_update(context->context, s, dts, meta, meta_size);
 }
+
+void ncast_proto_destroy(struct ncast_proto_context ** c)
+{
+	if (c && *c)
+	{
+		if ((*c)->context)
+			topo_proto_destroy(&((*c)->context));
+		free(*c);
+		*c = NULL;
+	}
+}

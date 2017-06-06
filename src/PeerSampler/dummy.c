@@ -107,9 +107,21 @@ static int dummy_remove_neighbour(struct peersampler_context *context, const str
   return -1;
 }
 
+void dummy_destroy(struct peersampler_context **context)
+{
+	if (context && *context)
+	{
+		if((*context)->r)
+			free((*context)->r);
+		free(*context);
+		*context = NULL;
+	}
+}
+
 
 struct peersampler_iface dummy = {
   .init = dummy_init,
+  .destroy = dummy_destroy,
   .change_metadata = dummy_change_metadata,
   .add_neighbour = dummy_add_neighbour,
   .parse_data = dummy_parse_data,

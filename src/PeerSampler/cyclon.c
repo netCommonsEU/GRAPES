@@ -261,8 +261,24 @@ static int cyclon_change_metadata(struct peersampler_context *context, const voi
   return cyclon_proto_change_metadata(context->pc, metadata, metadata_size);
 }
 
+void cyclon_destroy(struct peersampler_context **context)
+{
+	if (context && *context)
+	{
+		if((*context)->r)
+			free((*context)->r);
+		if((*context)->local_cache)
+			cache_free((*context)->local_cache);
+		if((*context)->flying_cache)
+			cache_free((*context)->flying_cache);
+		free(*context);
+		*context = NULL;
+	}
+}
+
 struct peersampler_iface cyclon = {
   .init = cyclon_init,
+  .destroy = cyclon_destroy,
   .change_metadata = cyclon_change_metadata,
   .add_neighbour = cyclon_add_neighbour,
   .parse_data = cyclon_parse_data,

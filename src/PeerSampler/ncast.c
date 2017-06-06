@@ -278,8 +278,26 @@ static int ncast_remove_neighbour(struct peersampler_context *context, const str
   return cache_del(context->local_cache, neighbour);
 }
 
+void ncast_destroy(struct peersampler_context **context)
+{
+	if (context && *context)
+	{
+		if((*context)->r)
+			free((*context)->r);
+		if((*context)->local_cache)
+			cache_free((*context)->local_cache);
+		if((*context)->tc)
+			ncast_proto_destroy(&((*context)->tc));
+		if((*context)->bootstrap_node)
+			nodeid_free(((*context)->bootstrap_node));
+		free(*context);
+		*context = NULL;
+	}
+}
+
 struct peersampler_iface ncast = {
   .init = ncast_init,
+  .destroy = ncast_destroy,
   .change_metadata = ncast_change_metadata,
   .add_neighbour = ncast_add_neighbour,
   .parse_data = ncast_parse_data,
@@ -292,6 +310,7 @@ struct peersampler_iface ncast = {
 
 struct peersampler_iface ncastplus = {
   .init = ncastplus_init,
+  .destroy = ncast_destroy,
   .change_metadata = ncast_change_metadata,
   .add_neighbour = ncast_add_neighbour,
   .parse_data = ncast_parse_data,

@@ -4,6 +4,7 @@
 struct ncast_proto_context;
 
 struct ncast_proto_context* ncast_proto_init(struct nodeID *s, const void *meta, int meta_size);
+void ncast_proto_destroy(struct ncast_proto_context **);
 
 int ncast_reply(struct ncast_proto_context *context, const struct peer_cache *c, const struct peer_cache *local_cache);
 int ncast_query(struct ncast_proto_context *context, const struct peer_cache *local_cache);

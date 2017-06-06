@@ -14,4 +14,6 @@ int topo_proto_myentry_update(struct topo_context *context, struct nodeID *s, in
 int topo_proto_metadata_update(struct topo_context *context, const void *meta, int meta_size);
 struct topo_context* topo_proto_init(struct nodeID *s, const void *meta, int meta_size);
 
+void topo_proto_destroy(struct topo_context ** t);
+
 #endif /* TOPO_PROTO */

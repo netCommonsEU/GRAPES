@@ -106,7 +106,7 @@ struct chunk_buffer *cb_init(const char *config)
     free(cb);
     return NULL;
   }
-  memset(cb->buffer, 0, cb->size);
+  memset(cb->buffer, 0, sizeof(struct chunk) * cb->size);
   for (i = 0; i < cb->size; i++) {
     cb->buffer[i].id = -1;
   }

@@ -98,3 +98,13 @@ int psample_remove_peer(struct psample_context *tc, const struct nodeID *neighbo
 {
   return tc->ps->remove_neighbour(tc->ps_context, neighbour);
 }
+
+void psample_destroy(struct psample_context **tc)
+{
+  if (tc && *tc)
+  {
+    (*tc)->ps->destroy(&((*tc)->ps_context));
+    free(*tc);
+    *tc = NULL;
+  }
+}

@@ -156,3 +156,16 @@ struct topo_context* topo_proto_init(struct nodeID *s, const void *meta, int met
 
   return con;
 }
+
+void topo_proto_destroy(struct topo_context ** t)
+{
+	if (t && *t)
+	{
+		if ((*t)->pkt)
+			free((*t)->pkt);
+		if ((*t)->myEntry)
+			cache_free((*t)->myEntry);
+		free(*t);
+		*t = NULL;
+	}
+}

@@ -481,8 +481,24 @@ static int cloudcast_change_metadata(struct peersampler_context *context, const 
   return cloudcast_proto_change_metadata(context->proto_context, metadata, metadata_size);
 }
 
+void cloudcast_destroy(struct peersampler_context **context)
+{
+	if (context && *context)
+	{
+		if((*context)->r)
+			free((*context)->r);
+		if((*context)->local_cache)
+			cache_free((*context)->local_cache);
+		if((*context)->flying_cache)
+			cache_free((*context)->flying_cache);
+		free(*context);
+		*context = NULL;
+	}
+}
+
 struct peersampler_iface cloudcast = {
   .init = cloudcast_init,
+  .destroy = cloudcast_destroy,
   .change_metadata = cloudcast_change_metadata,
   .add_neighbour = cloudcast_add_neighbour,
   .parse_data = cloudcast_parse_data,
