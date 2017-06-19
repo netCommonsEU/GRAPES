@@ -16,9 +16,7 @@ struct peer {
     struct timeval creation_timestamp; ///< creation timestamp
     struct chunkID_set *bmap; ///< buffermap of the peer
     struct timeval bmap_timestamp; ///< buffermap timestamp
-    int cb_size; ///< chunk buffer size
-    double capacity; ///< chunk buffer size
-    int subnet;
+    void * metadata;
 };
 
 

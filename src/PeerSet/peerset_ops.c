@@ -158,8 +158,7 @@ int peerset_add_peer(struct peerset *h,const  struct nodeID *id)
   gettimeofday(&e->creation_timestamp,NULL);
   e->bmap = chunkID_set_init("type=bitmap");
   timerclear(&e->bmap_timestamp);
-  e->cb_size = 0;
-  e->capacity = 0;
+  e->metadata = NULL;
 
   return h->n_elements;
 }
@@ -231,6 +230,8 @@ void peerset_clear(struct peerset *h, int size)
     struct peer *e = h->elements[i];
     nodeid_free(e->id);
     chunkID_set_free(e->bmap);
+    if (e->metadata)
+	    free(e->metadata);
     free(e);
   }
 

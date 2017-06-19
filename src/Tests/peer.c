@@ -24,7 +24,6 @@ struct peer *peerCreate (struct nodeID *id, int *size)
 	res->id = nodeid_dup(id);
 	gettimeofday(&(res->creation_timestamp),NULL);
 	gettimeofday(&(res->bmap_timestamp),NULL);
-	res->cb_size = 0;
 	res->bmap = chunkID_set_init(0);
 	return res;
 }
@@ -43,7 +42,6 @@ int peerDump(const struct peer *p, uint8_t **buf) {
 	int res = id_size+sizeof(int);
 	*buf = realloc(*buf, res);
 	memcpy(*buf,id,id_size);
-	memcpy((*buf)+id_size,&(p->cb_size),sizeof(int));
 
 	return res;
 
@@ -55,7 +53,6 @@ struct peer* peerUndump(const uint8_t *buf, int *size) {
 	struct peer *p;
 	p = malloc(sizeof(struct peer));
 	p->id = nodeid_undump(buf,size);
-	memcpy(&p->cb_size,buf+(*size),sizeof(int));
 	*size = *size + sizeof(int);
 
 	gettimeofday(&(p->creation_timestamp),NULL);
