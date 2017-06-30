@@ -14,8 +14,6 @@
 #include "trade_msg_ha.h"
 #include "grapes_msg_types.h"
 
-static struct nodeID *localID;
-
 int parseChunkMsg(const uint8_t *buff, int buff_len, struct chunk *c, uint16_t *transid)
 {
   int res;
@@ -45,7 +43,7 @@ int parseChunkMsg(const uint8_t *buff, int buff_len, struct chunk *c, uint16_t *
  */
 //TO CHECK AND CORRECT
 //XXX Send data is in char while our buffer is in uint8
-int sendChunk(const struct nodeID *to, const struct chunk *c, uint16_t transid)
+int sendChunk(const struct nodeID * localID, const struct nodeID *to, const struct chunk *c, uint16_t transid)
 {
   int buff_len;
   uint8_t *buff;
@@ -72,8 +70,6 @@ int sendChunk(const struct nodeID *to, const struct chunk *c, uint16_t transid)
 
 int chunkDeliveryInit(struct nodeID *myID)
 {
-  localID = myID;
-
   return 1;
 }
 
