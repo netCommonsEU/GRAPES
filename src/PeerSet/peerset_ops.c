@@ -153,12 +153,11 @@ int peerset_add_peer(struct peerset *h,const  struct nodeID *id)
   memmove(&h->elements[pos + 1], &h->elements[pos] , ((h->n_elements++) - pos) * sizeof(struct peer *));
 
   e = malloc(sizeof(struct peer));
-  h->elements[pos] = e;;
+  h->elements[pos] = e;
+  gettimeofday(&e->creation_timestamp, NULL);
   e->id = nodeid_dup(id);
-  gettimeofday(&e->creation_timestamp,NULL);
-  e->bmap = chunkID_set_init("type=bitmap");
-  timerclear(&e->bmap_timestamp);
   e->metadata = NULL;
+  e->user_data = NULL;
 
   return h->n_elements;
 }
@@ -204,7 +203,10 @@ int peerset_remove_peer(struct peerset *h, const struct nodeID *id){
   if (i >= 0) {
     struct peer *e = h->elements[i];
     nodeid_free(e->id);
-    chunkID_set_free(e->bmap);
+    if (e->metadata)
+	    free(e->metadata);
+    if (e->user_data)
+	    free(e->user_data);
     memmove(&h->elements[i], &h->elements[i+1], ((h->n_elements--) - (i+1)) * sizeof(struct peer *));
     free(e);
 
@@ -229,9 +231,10 @@ void peerset_clear(struct peerset *h, int size)
   for (i = 0; i < h->n_elements; i++) {
     struct peer *e = h->elements[i];
     nodeid_free(e->id);
-    chunkID_set_free(e->bmap);
     if (e->metadata)
 	    free(e->metadata);
+    if (e->user_data)
+	    free(e->user_data);
     free(e);
   }
 

@@ -12,11 +12,17 @@
 #include <sys/time.h>
 
 struct peer {
-    struct nodeID *id; ///< NodeId associated to the peer
-    struct timeval creation_timestamp; ///< creation timestamp
-    struct chunkID_set *bmap; ///< buffermap of the peer
-    struct timeval bmap_timestamp; ///< buffermap timestamp
-    void * metadata;
+    /* Peer identifier, the nodeid associated with the peer */
+    struct nodeID *id;
+
+    /* Peer creation time */
+    struct timeval creation_timestamp; 
+
+    /* User defined data to be broadcasted in the network */
+    void * metadata; 
+
+    /* User defined data not to be sent over the network */
+    void * user_data;
 };
 
 
