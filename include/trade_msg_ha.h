@@ -38,7 +38,7 @@ int parseChunkMsg(const uint8_t *buff, int buff_len, struct chunk *c, uint16_t *
   * @param[in] transid the ID of transaction this send belongs to (if any)
   * @return 0 on success, <0 on error
   */
-int sendChunk(const struct nodeID *to, const struct chunk *c, uint16_t transid);
+int sendChunk(const struct nodeID * localID, const struct nodeID *to, const struct chunk *c, uint16_t transid);
 
 /**
   * @brief Init the Chunk trading internals.

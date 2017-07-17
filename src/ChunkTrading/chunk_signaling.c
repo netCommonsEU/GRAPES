@@ -50,15 +50,9 @@ struct sig_nal {
   uint8_t third_peer;//for buffer map exchange from other peers, just the first byte!
 } __attribute__((packed));
 
-//set the local node ID
-static struct nodeID *localID;
 
 int chunkSignalingInit(struct nodeID *myID)
 {
-  if(!myID)
-      return -1;
-  localID = myID;
-
   return 1;
 }
 
@@ -111,7 +105,7 @@ int parseSignaling(const uint8_t *buff, int buff_len, struct nodeID **owner_id,
   return 1;
 }
 
-static int sendSignaling(int type, const struct nodeID *to_id,
+static int sendSignaling(const struct nodeID *localID, int type, const struct nodeID *to_id,
                          const struct nodeID *owner_id,
                          const struct chunkID_set *cset, int max_deliver,
                          uint16_t trans_id)
@@ -158,43 +152,43 @@ static int sendSignaling(int type, const struct nodeID *to_id,
   return 1;
 }
 
-int requestChunks(const struct nodeID *to, const ChunkIDSet *cset,
+int requestChunks(const struct nodeID *localID, const struct nodeID *to, const ChunkIDSet *cset,
                   int max_deliver, uint16_t trans_id)
 {
-  return sendSignaling(MSG_SIG_REQ, to, NULL, cset, max_deliver, trans_id);
+  return sendSignaling(localID, MSG_SIG_REQ, to, NULL, cset, max_deliver, trans_id);
 }
 
-int deliverChunks(const struct nodeID *to, ChunkIDSet *cset, uint16_t trans_id)
+int deliverChunks(const struct nodeID * localID, const struct nodeID *to, ChunkIDSet *cset, uint16_t trans_id)
 {
-  return sendSignaling(MSG_SIG_DEL, to, NULL, cset, 0, trans_id);
+  return sendSignaling(localID, MSG_SIG_DEL, to, NULL, cset, 0, trans_id);
 }
 
-int offerChunks(const struct nodeID *to, struct chunkID_set *cset,
+int offerChunks(const struct nodeID * localID, const struct nodeID *to, struct chunkID_set *cset,
                 int max_deliver, uint16_t trans_id)
 {
-  return sendSignaling(MSG_SIG_OFF, to, NULL, cset, max_deliver, trans_id);
+  return sendSignaling(localID, MSG_SIG_OFF, to, NULL, cset, max_deliver, trans_id);
 }
 
-int acceptChunks(const struct nodeID *to, struct chunkID_set *cset, uint16_t trans_id)
+int acceptChunks(const struct nodeID *localID, const struct nodeID *to, struct chunkID_set *cset, uint16_t trans_id)
 {
-  return sendSignaling(MSG_SIG_ACC, to, NULL, cset, 0, trans_id);
+  return sendSignaling(localID, MSG_SIG_ACC, to, NULL, cset, 0, trans_id);
 }
 
-int sendBufferMap(const struct nodeID *to, const struct nodeID *owner,
+int sendBufferMap(const struct nodeID *localID, const struct nodeID *to, const struct nodeID *owner,
                   struct chunkID_set *bmap, int cb_size, uint16_t trans_id)
 {
-  return sendSignaling(MSG_SIG_BMOFF, to, (!owner ? localID : owner), bmap,
+  return sendSignaling(localID, MSG_SIG_BMOFF, to, (!owner ? localID : owner), bmap,
                        cb_size, trans_id);
 }
 
-int sendAck(const struct nodeID *to, struct chunkID_set *cset, uint16_t trans_id)
+int sendAck(const struct nodeID *localID, const struct nodeID *to, struct chunkID_set *cset, uint16_t trans_id)
 {
-    return sendSignaling(MSG_SIG_ACK, to, NULL, cset, 0, trans_id);
+    return sendSignaling(localID, MSG_SIG_ACK, to, NULL, cset, 0, trans_id);
 }
 
-int requestBufferMap(const struct nodeID *to, const struct nodeID *owner,
+int requestBufferMap(const struct nodeID *localID, const struct nodeID *to, const struct nodeID *owner,
                      uint16_t trans_id)
 {
-  return sendSignaling(MSG_SIG_BMREQ, to, (!owner?localID:owner), NULL,
+  return sendSignaling(localID, MSG_SIG_BMREQ, to, (!owner?localID:owner), NULL,
                        0, trans_id);
 }
