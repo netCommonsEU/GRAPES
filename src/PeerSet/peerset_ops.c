@@ -20,6 +20,26 @@
 
 #define DEFAULT_SIZE_INCREMENT 32
 
+void peer_init_data(struct peer *p)
+{
+	if (p)
+	{
+		p->metadata = NULL;
+		p->user_data = NULL;
+	}
+}
+
+void peer_deinit_data(struct peer *p)
+{
+	if(p && p->metadata)
+		free(p->metadata);
+	if(p && p->metadata)
+		free(p->user_data);
+}
+
+peer_deinit_f peer_deinit = peer_deinit_data;
+peer_init_f peer_init = peer_init_data;
+
 static int nodeid_peer_cmp(const void *id, const void *p)
 {
   const struct peer *peer = *(struct peer *const *)p;
@@ -156,8 +176,7 @@ int peerset_add_peer(struct peerset *h,const  struct nodeID *id)
   h->elements[pos] = e;
   gettimeofday(&e->creation_timestamp, NULL);
   e->id = nodeid_dup(id);
-  e->metadata = NULL;
-  e->user_data = NULL;
+  peer_init(e);
 
   return h->n_elements;
 }
@@ -203,10 +222,8 @@ int peerset_remove_peer(struct peerset *h, const struct nodeID *id){
   if (i >= 0) {
     struct peer *e = h->elements[i];
     nodeid_free(e->id);
-    if (e->metadata)
-	    free(e->metadata);
-    if (e->user_data)
-	    free(e->user_data);
+    if (peer_deinit)
+	    peer_deinit(e);
     memmove(&h->elements[i], &h->elements[i+1], ((h->n_elements--) - (i+1)) * sizeof(struct peer *));
     free(e);
 
@@ -231,10 +248,8 @@ void peerset_clear(struct peerset *h, int size)
   for (i = 0; i < h->n_elements; i++) {
     struct peer *e = h->elements[i];
     nodeid_free(e->id);
-    if (e->metadata)
-	    free(e->metadata);
-    if (e->user_data)
-	    free(e->user_data);
+    if (peer_deinit)
+	    peer_deinit(e);
     free(e);
   }
 

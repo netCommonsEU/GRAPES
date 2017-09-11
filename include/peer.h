@@ -2,8 +2,8 @@
  * @file:   peer.h
  * @brief Peer structure definition.
  * @author: Alessandro Russo <russo@disi.unitn.it>
+ * @author: Luca Baldesi <luca.baldesi@unitn.it>
  *
- * @date December 15, 2009, 2:09 PM
  */
 
 #ifndef _PEER_H
@@ -25,5 +25,7 @@ struct peer {
     void * user_data;
 };
 
+typedef void (*peer_deinit_f)(struct peer *p);
+typedef void (*peer_init_f)(struct peer *p);
 
 #endif	/* _PEER_H */
