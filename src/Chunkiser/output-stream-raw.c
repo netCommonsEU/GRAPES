@@ -72,7 +72,7 @@ static struct dechunkiser_ctx *raw_open(const char *fname, const char *config)
   return res;
 }
 
-static void raw_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size)
+static void raw_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size, int flow_id)
 {
   int offset;
 

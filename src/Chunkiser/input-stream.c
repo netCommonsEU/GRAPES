@@ -107,7 +107,7 @@ void input_stream_close(struct input_stream *s)
 
 int chunkise(struct input_stream *s, struct chunk *c)
 {
-  c->data = s->in->chunkise(s->c, c->id, &c->size, &c->timestamp, &c->attributes, &c->attributes_size);
+  c->data = s->in->chunkise(s->c, c->id, &c->size, &c->timestamp, &c->attributes, &c->attributes_size, &c->flow_id);
   if (c->data == NULL) {
     if (c->size < 0) {
       return -1;
@@ -127,4 +127,3 @@ const int *input_get_fds(const struct input_stream *s)
 
   return NULL;
 }
-

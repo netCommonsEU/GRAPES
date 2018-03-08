@@ -75,12 +75,12 @@ static enum CodecID libav_codec_id(uint8_t mytype)
       return 0;
   }
 }
-  
+
 static AVFormatContext *format_init(struct dechunkiser_ctx *o)
 {
   AVFormatContext *of;
   AVOutputFormat *outfmt;
-  
+
   av_register_all();
 
   outfmt = av_guess_format(o->output_format, o->output_file, NULL);
@@ -207,7 +207,7 @@ static struct dechunkiser_ctx *avf_init(const char *fname, const char *config)
   return out;
 }
 
-static void avf_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size)
+static void avf_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size, int flow_id)
 {
   int header_size;
   int frames, i, media_type;

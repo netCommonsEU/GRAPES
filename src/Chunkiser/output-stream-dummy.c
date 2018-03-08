@@ -60,7 +60,7 @@ static struct dechunkiser_ctx *dummy_open(const char *fname, const char *config)
   return res;
 }
 
-static void dummy_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size)
+static void dummy_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size, int flow_id)
 {
   switch (o->type) {
     case chunk_id:

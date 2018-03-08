@@ -1,7 +1,7 @@
 #ifndef CHUNK_H
 #define CHUNK_H
 
-/** 
+/**
  * @file chunk.h
  *
  * @brief Chunk structure.
@@ -11,7 +11,7 @@
  */
 
 /**
- * Structure describing a chunk. This is part of the 
+ * Structure describing a chunk. This is part of the
  * public API
  */
 typedef struct chunk {
@@ -45,5 +45,10 @@ typedef struct chunk {
     * Size of the attributes, in byte.
     */
    int attributes_size;
+   /**
+    * ID of the flow which the chunk belongs to (alias color)
+    * Default is 1
+   */
+   int flow_id;
 } Chunk;
 #endif

@@ -8,7 +8,7 @@
  */
 
 /** @example chunk_encoding_test.c
- * 
+ *
  * A test program showing how to use the chunk encoding and decoding API.
  *
  */
@@ -16,16 +16,16 @@
 /**
  * @brief Size of the chunk header in bytes.
  */
-#define CHUNK_HEADER_SIZE 20
+#define CHUNK_HEADER_SIZE 24
 
  /**
   * @brief Encode a sequence of information, filling the buffer with the corresponding bit stream.
-  * 
+  *
   * Encode a sequence of information given as parameters and fills a buffer (given as parameter) with the corresponding bit stream.
-  * The main reason to encode a return the bit stream is the possibility to either send directly a packet with the encoded bit stream, or 
+  * The main reason to encode a return the bit stream is the possibility to either send directly a packet with the encoded bit stream, or
   * add this bit stream in piggybacking
-  * 
-  * @param[in] c Chunk to send 
+  *
+  * @param[in] c Chunk to send
   * @param[in] buff Buffer that will be filled with the bit stream obtained as a coding of the above parameters
   * @param[in] buff_len length of the buffer that will contain the bit stream
   * @return the lenght of the encoded bitstream (in bytes) on success, <0 on error
@@ -36,7 +36,7 @@ int encodeChunk(const struct chunk *c, uint8_t *buff, int buff_len);
   * @brief Decode the bit stream.
   *
   * Decode the bit stream contained int the buffer, filling the other parameters. This is the dual of the encode function.
-  *  
+  *
   * @param[in] c Chunks that has been transmitted
   * @param[in] buff Buffer which contain the bit stream to decode, filling the above parameters
   * @param[in] buff_len length of the buffer that contain the bit stream

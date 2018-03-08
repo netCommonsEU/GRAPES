@@ -163,7 +163,7 @@ static void packet_write(int fd, const char *ip, int port, uint8_t *data, int si
 }
 
 
-static void rtp_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, int size) {
+static void rtp_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, int size, int flow_id) {
   uint8_t* data_end = data + size;
   printf_log(ctx, 2, "Got chunk of size %i", size);
   while (data < data_end) {

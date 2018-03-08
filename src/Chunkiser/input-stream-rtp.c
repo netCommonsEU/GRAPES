@@ -190,7 +190,7 @@ static uint64_t rtptontp(const struct chunkiser_ctx *ctx,
     // Make sure the time interval (a -> b) is shorter than (b -> a)
     // (One of the two intervals will encompass a timer overflow).
     // Otherways something is probably very wrong.
-    assert((b->rtp - a->rtp) < (a->rtp - b->rtp)); 
+    assert((b->rtp - a->rtp) < (a->rtp - b->rtp));
     // Similarly, with newly arrived and a
     assert((rtp - a->rtp) < (a->rtp - rtp));
     // Similarly with ntp
@@ -567,7 +567,7 @@ static void rtp_close(struct chunkiser_ctx  *ctx) {
   In case of error, returns NULL and size=-1
  */
 static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint64_t *ts,
-                                      void **attr, int *attr_size) {
+                                      void **attr, int *attr_size, int *flow_id) {
   int status;  // -1: buffer full, send now
                //  0: Go on, do not send;
                //  1: send after loop;

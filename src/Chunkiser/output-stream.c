@@ -87,5 +87,5 @@ void out_stream_close(struct output_stream *s)
 
 void chunk_write(struct output_stream *o, const struct chunk *c)
 {
-  o->out->write(o->c, c->id, c->data, c->size);
+  o->out->write(o->c, c->id, c->data, c->size, c->flow_id);
 }

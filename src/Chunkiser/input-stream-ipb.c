@@ -84,7 +84,7 @@ static int frame_type(AVPacket *pkt)
   if ((pkt->dts == AV_NOPTS_VALUE) || (pkt->pts == AV_NOPTS_VALUE)) {
     return -1;
   }
-  
+
   if (pkt->flags & PKT_FLAG_KEY) {
     return FF_I_TYPE;
   }
@@ -308,7 +308,7 @@ static void ipb_close(struct chunkiser_ctx *s)
   free(s);
 }
 
-static uint8_t *ipb_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size)
+static uint8_t *ipb_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size, int *flow_id)
 {
   AVPacket pkt;
   AVRational new_tb;
@@ -371,7 +371,7 @@ static uint8_t *ipb_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_
   }
 
   *size = 0;
-  result = NULL; 
+  result = NULL;
   switch(frame_type(&pkt)) {
     case FF_I_TYPE:
       fprintf(stderr, "I Frame!\n");
@@ -450,7 +450,7 @@ static uint8_t *ipb_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_
 
   //if (*attr_size) {					//TODO: is this check needed
   //    fprintf(stderr, "Chunk with attribute?\n");
-  //} else 
+  //} else
   if (result) {
     struct chunk_attributes_chunker *ca;
 

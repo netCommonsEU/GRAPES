@@ -20,6 +20,7 @@ static void chunk_print(FILE *f, const struct chunk *c)
   fprintf(f, "\tTS: %"PRIu64"\n", c->timestamp);
   fprintf(f, "\tPayload size: %d\n", c->size);
   fprintf(f, "\tAttributes size: %d\n", c->attributes_size);
+  fprintf(f, "\tFlow_id: %d\n", c->flow_id);
   p = c->data;
   fprintf(f, "\tPayload:\n");
   fprintf(f, "\t\t%c %c %c %c ...:\n", p[0], p[1], p[2], p[3]);
@@ -42,6 +43,7 @@ int main(int argc, char *argv[])
   src_c.size = strlen("ciao") + 1;
   src_c.data = strdup("ciao");
   src_c.attributes_size = 0;
+  src_c.flow_id = 40;
 
   chunk_print(stdout, &src_c);
 

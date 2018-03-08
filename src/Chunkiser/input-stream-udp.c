@@ -165,7 +165,7 @@ static void udp_close(struct chunkiser_ctx  *s)
   free(s);
 }
 
-static uint8_t *udp_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size)
+static uint8_t *udp_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size, int *flow_id)
 {
   int i;
 
@@ -217,4 +217,3 @@ struct chunkiser_iface in_udp = {
   .chunkise = udp_chunkise,
   .get_fds = udp_get_fds,
 };
-

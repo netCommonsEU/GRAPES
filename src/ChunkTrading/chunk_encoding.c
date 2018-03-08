@@ -31,6 +31,8 @@ int encodeChunk(const struct chunk *c, uint8_t *buff, int buff_len)
   int_cpy(buff + 8, half_ts);
   int_cpy(buff + 12, c->size);
   int_cpy(buff + 16, c->attributes_size);
+  int_cpy(buff + 20, c->flow_id);
+
   memcpy(buff + CHUNK_HEADER_SIZE, c->data, c->size);
   if (c->attributes_size) {
     memcpy(buff + CHUNK_HEADER_SIZE + c->size, c->attributes, c->attributes_size);
@@ -47,9 +49,10 @@ int decodeChunk(struct chunk *c, const uint8_t *buff, int buff_len)
   c->id = int_rcpy(buff);
   c->timestamp = int_rcpy(buff + 4);
   c->timestamp = c->timestamp << 32;
-  c->timestamp |= int_rcpy(buff + 8); 
+  c->timestamp |= int_rcpy(buff + 8);
   c->size = int_rcpy(buff + 12);
   c->attributes_size = int_rcpy(buff + 16);
+  c->flow_id = int_rcpy(buff + 20);
 
   if (buff_len < c->size + CHUNK_HEADER_SIZE) {
     return -2;

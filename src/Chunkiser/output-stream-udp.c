@@ -122,7 +122,7 @@ static void packet_write(int fd, const char *ip, int port, uint8_t *data, int si
   sendto(fd, data, size, 0, (struct sockaddr *)&si_other, sizeof(si_other));
 }
 
-static void udp_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size)
+static void udp_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size, int flow_id)
 {
   int i = 0;
 

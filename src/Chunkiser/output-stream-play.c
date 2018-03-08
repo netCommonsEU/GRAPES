@@ -44,7 +44,7 @@ struct dechunkiser_ctx {
   int64_t prev_pts, prev_dts;
   AVFormatContext *outctx;
   struct controls *c1;
-  
+
   snd_pcm_t *playback_handle;
   const char *device_name;
   int end;
@@ -129,7 +129,7 @@ static snd_pcm_format_t sample_fmt_to_snd_pcm_format(enum AVSampleFormat  sample
     //case AV_SAMPLE_FMT_FLT :return SND_PCM_FORMAT_FLOAT;
     //case AV_SAMPLE_FMT_DBL :
     //case AV_SAMPLE_FMT_NONE : return SND_PCM_FORMAT_UNKNOWN;break;
-    //case AV_SAMPLE_FMT_NB :  
+    //case AV_SAMPLE_FMT_NB :
   }
 }
 
@@ -181,21 +181,21 @@ static int prepare_audio(snd_pcm_t *playback_handle, const snd_pcm_format_t form
 {
   int err;
   snd_pcm_hw_params_t *hw_params;
-    
+
   err = snd_pcm_hw_params_malloc(&hw_params);
   if (err < 0) {
     fprintf (stderr, "cannot allocate hardware parameter structure (%s)\n", snd_strerror(err));
 
     return -1;
   }
-    
+
   err = snd_pcm_hw_params_any(playback_handle, hw_params);
   if (err < 0) {
     fprintf (stderr, "cannot initialize hardware parameter structure (%s)\n", snd_strerror(err));
     snd_pcm_hw_params_free(hw_params);
 
     return -2;
-  } 
+  }
 
   err = snd_pcm_hw_params_set_access(playback_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
   if (err < 0) {
@@ -211,10 +211,10 @@ static int prepare_audio(snd_pcm_t *playback_handle, const snd_pcm_format_t form
     snd_pcm_hw_params_free(hw_params);
 
     return -4;
-  } 
+  }
 
   err = snd_pcm_hw_params_set_rate_near(playback_handle, hw_params, freq, 0);
-  if (err < 0) {    
+  if (err < 0) {
     fprintf (stderr, "cannot set sample rate (%s)\n", snd_strerror(err));
     snd_pcm_hw_params_free(hw_params);
 
@@ -223,7 +223,7 @@ static int prepare_audio(snd_pcm_t *playback_handle, const snd_pcm_format_t form
 
   err = snd_pcm_hw_params_set_channels_near(playback_handle, hw_params, channels);
   if (err < 0) {
-    fprintf (stderr, "cannot set channel count (%s)\n", snd_strerror(err)); 
+    fprintf (stderr, "cannot set channel count (%s)\n", snd_strerror(err));
     snd_pcm_hw_params_free(hw_params);
 
     return -6;
@@ -251,7 +251,7 @@ static int prepare_audio(snd_pcm_t *playback_handle, const snd_pcm_format_t form
 
 static int audio_write_packet(struct dechunkiser_ctx *o, AVPacket pkt)
 {
-  int res; 
+  int res;
   AVFormatContext * s1=o->outctx;
   int size_out;
   int data_size=AVCODEC_MAX_AUDIO_FRAME_SIZE,len1;
@@ -264,7 +264,7 @@ static int audio_write_packet(struct dechunkiser_ctx *o, AVPacket pkt)
   if (o->playback_handle == NULL) {
     res = snd_pcm_open(&o->playback_handle, o->device_name, SND_PCM_STREAM_PLAYBACK, 0);
     if (res  < 0) {
-      fprintf (stderr, "cannot open audio device %s (%s)\n", o->device_name, snd_strerror(res)); 
+      fprintf (stderr, "cannot open audio device %s (%s)\n", o->device_name, snd_strerror(res));
 
       return -1;
     }
@@ -279,7 +279,7 @@ static int audio_write_packet(struct dechunkiser_ctx *o, AVPacket pkt)
 
       return -2;
     }
-    
+
     if (prepare_audio(o->playback_handle, snd_pcm_fmt, &o->channels, &o->sample_rate) >= 0) {
       o->rsc = av_audio_resample_init(o->channels,
                                       o->outctx->streams[pkt.stream_index]->codec->channels,
@@ -292,25 +292,25 @@ static int audio_write_packet(struct dechunkiser_ctx *o, AVPacket pkt)
     }
   }
 
-  while (pkt.size > 0) { 
+  while (pkt.size > 0) {
     outbuf = av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE * 8);	/* FIXME: Why "* 8"? */
     buffer_resample = av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE * 8);
     data_size = AVCODEC_MAX_AUDIO_FRAME_SIZE * 2;		/* FIXME: Shouldn't this be "* 8" too? */
 
     len1 = avcodec_decode_audio3(s1->streams[pkt.stream_index]->codec, (int16_t *)outbuf, &data_size, &pkt);
     if (len1 < 0) {
-      fprintf(stderr, "Error while decoding\n"); 
+      fprintf(stderr, "Error while decoding\n");
 
       return 0;
     }
 
     if(data_size > 0) {
       data_size /= s1->streams[pkt.stream_index]->codec->channels * pow(2, s1->streams[pkt.stream_index]->codec->sample_fmt); // FIXME: Remove the "pow()"
-      size_out = audio_resample(o->rsc, buffer_resample, outbuf, data_size); 
+      size_out = audio_resample(o->rsc, buffer_resample, outbuf, data_size);
       //size_out/= s1->streams[pkt->stream_index]->codec->channels*pow(2,s1->streams[pkt->stream_index]->codec->sample_fmt);
-   
+
       res = snd_pcm_writei(o->playback_handle, buffer_resample, size_out);
-      if (res < 0) { 
+      if (res < 0) {
         snd_pcm_recover(o->playback_handle, res, 0);
       } else if(res == size_out) {	// FIXME: WTF?
         pkt.size -= len1;
@@ -363,7 +363,7 @@ static int64_t synchronise(struct dechunkiser_ctx *o, int64_t pts)
 
 /* FIXME: Return value??? What is it used for? */
 static uint8_t *frame_display(struct dechunkiser_ctx *o, AVPacket pkt)
-{ 
+{
   GdkPixmap *screen = o->screen;
   AVFormatContext *ctx = o->outctx;
   int res = 1, decoded, height, width;
@@ -392,13 +392,13 @@ static uint8_t *frame_display(struct dechunkiser_ctx *o, AVPacket pkt)
     if (synchronise(o, pic.pkt_pts) < 0) {
       return NULL;
     }
-    
+
     if(o->last_video_pts <= pic.pkt_pts) {
       o->last_video_pts = pic.pkt_pts;
       height = ctx->streams[pkt.stream_index]->codec->height;
       width = ctx->streams[pkt.stream_index]->codec->width;
 
-      if (o->swsctx == NULL) { 
+      if (o->swsctx == NULL) {
         o->swsctx = rescaler_context(ctx->streams[pkt.stream_index]->codec);
         avcodec_get_frame_defaults(&rgb);
         avpicture_alloc((AVPicture*)&rgb, PIX_FMT_RGB24, width, height);
@@ -406,10 +406,10 @@ static uint8_t *frame_display(struct dechunkiser_ctx *o, AVPacket pkt)
       if (o->swsctx) {
         sws_scale(o->swsctx,(const uint8_t* const*) pic.data, pic.linesize, 0,
                   height, rgb.data, rgb.linesize);
-   
+
         gdk_draw_rgb_image(screen, c->gc, 0, 0, width, height,
                            GDK_RGB_DITHER_MAX, rgb.data[0], width * 3);
-      
+
         gtk_widget_draw(GTK_WIDGET(c->d_area), &c->u_area);
 
         return rgb.data[0]; 		// FIXME!
@@ -521,7 +521,7 @@ static gint configure_event(GtkWidget *widget, GdkEventConfigure *event, struct 
     gdk_draw_rectangle(data->screen, widget->style->white_gc, TRUE, 0, 0,
            widget->allocation.width, widget->allocation.height);
   }
-  
+
   return TRUE;
 }
 
@@ -589,7 +589,7 @@ static AVFormatContext *format_init(struct dechunkiser_ctx * o)
 {
   AVFormatContext *of;
   AVOutputFormat *outfmt;
-  
+
   av_register_all();
 
   outfmt = av_guess_format("null", NULL, NULL);
@@ -730,7 +730,7 @@ static struct dechunkiser_ctx *play_init(const char * fname, const char * config
       }
     }
   }
-  free(cfg_tags); 
+  free(cfg_tags);
 
   out->playout_delay = 1000000;
   out->pts0 = -1;
@@ -749,7 +749,7 @@ static struct dechunkiser_ctx *play_init(const char * fname, const char * config
   return out;
 }
 
-static void play_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size)
+static void play_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size, int flow_id)
 {
   int header_size;
   int frames, i, media_type;
@@ -766,13 +766,13 @@ static void play_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int siz
     media_type = 2;
   }
 
-  if (o->outctx == NULL) { 
+  if (o->outctx == NULL) {
     o->outctx = format_gen(o, data);
-    if (o->outctx == NULL) {    
+    if (o->outctx == NULL) {
       fprintf(stderr, "Format init failed\n");
       return;
     }
-    
+
     if(o->t0 == 0){
       o->t0 = av_gettime();
     }
@@ -785,7 +785,7 @@ static void play_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int siz
 
   frames = data[header_size - 1];
   p = data + header_size + FRAME_HEADER_SIZE * frames;
-  for (i = 0; i < frames; i++) { 
+  for (i = 0; i < frames; i++) {
     AVPacket pkt;
     int64_t pts, dts;
     int frame_size;
@@ -848,7 +848,7 @@ static void play_close(struct dechunkiser_ctx *s)
   if (s->rsc) {
     audio_resample_close(s->rsc);
   }
- 
+
   for (i = 0; i < s->outctx->nb_streams; i++) {
     avcodec_close(s->outctx->streams[i]->codec);
     /*av_metadata_free(&s->outctx->streams[i]->metadata);

@@ -71,7 +71,7 @@ static void dumb_close(struct chunkiser_ctx *s)
   free(s);
 }
 
-static uint8_t *dumb_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size)
+static uint8_t *dumb_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size, int *flow_id)
 {
   uint8_t *res;
 
@@ -108,5 +108,3 @@ struct chunkiser_iface in_dumb = {
   .chunkise = dumb_chunkise,
   .get_fds = dumb_get_fds,
 };
-
-
