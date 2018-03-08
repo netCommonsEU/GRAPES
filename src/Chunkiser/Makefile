@@ -17,6 +17,7 @@ OBJS += \
        input-stream-udp.o       \
        output-stream-raw.o      \
        output-stream-rtp.o      \
+       output-stream-rtp-multi.o\
        output-stream-udp.o
 endif
 
@@ -31,8 +32,10 @@ endif
 ifeq ($(strip $(PJDIR)),)
 OBJS += rtp_rtcp.o
 OBJS += input-stream-rtp.o
+OBJS += input-stream-rtp-multi.o
 else
 OBJS += input-stream-rtp.o
+OBJS += input-stream-rtp-multi.o
 endif
 
 all: libchunkiser.a
@@ -54,5 +57,6 @@ ifeq ($(strip $(PJDIR)),)
 CPPFLAGS += -DRTP
 else
 input-stream-rtp.o: CFLAGS += -I$(PJDIR)/include
+input-stream-rtp-multi.o: CFLAGS += -I$(PJDIR)/include
 CPPFLAGS += -DRTP -DPJLIB_RTP
 endif

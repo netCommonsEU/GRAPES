@@ -16,6 +16,7 @@ extern struct chunkiser_iface in_ts;
 extern struct chunkiser_iface in_ipb;
 #ifdef RTP
 extern struct chunkiser_iface in_rtp;
+extern struct chunkiser_iface in_rtp_multi;
 #endif
 
 struct input_stream {
@@ -43,6 +44,9 @@ struct input_stream *input_stream_open(const char *fname, int *period, const cha
     const char *type;
 
     type = grapes_config_value_str(cfg_tags, "chunkiser");
+    if(type)
+      fprintf(stdout, "Choosen chunkiser: %s\n", type);
+
     if (type && !strcmp(type, "dummy")) {
       res->in = &in_dummy;
     }
@@ -66,6 +70,19 @@ struct input_stream *input_stream_open(const char *fname, int *period, const cha
       return NULL;
 #endif
     }
+
+    if (type && !strcmp(type, "rtp_multi")) {
+#ifdef RTP
+      res->in = &in_rtp_multi;
+#else
+      fprintf(stderr, "Error opening input: `rtp_multi` chunkiser was specified,"
+	              " but GRAPES was compiled without RTP support!\n");
+      free(res);
+      free(cfg_tags);
+      return NULL;
+#endif
+    }
+
     if (type && !strcmp(type, "avf")) {
 #ifdef AVF
       res->in = &in_avf;
@@ -92,7 +109,6 @@ struct input_stream *input_stream_open(const char *fname, int *period, const cha
   res->c = res->in->open(fname, period, config);
   if (res->c == NULL) {
     free(res);
-
     return NULL;
   }
 

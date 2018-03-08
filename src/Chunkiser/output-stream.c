@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "chunk.h"
 #include "grapes_config.h"
@@ -12,6 +13,7 @@ extern struct dechunkiser_iface out_avf;
 extern struct dechunkiser_iface out_raw;
 extern struct dechunkiser_iface out_udp;
 extern struct dechunkiser_iface out_rtp;
+extern struct dechunkiser_iface out_rtp_multi;
 extern struct dechunkiser_iface out_dummy;
 
 struct output_stream {
@@ -39,12 +41,17 @@ struct output_stream *out_stream_init(const char *fname, const char *config)
     const char *type;
 
     type = grapes_config_value_str(cfg_tags, "dechunkiser");
+    if(type)
+      fprintf(stdout, "Choosen dechunkiser: %s\n", type);
+
     if (type && !strcmp(type, "raw")) {
       res->out = &out_raw;
     } else if (type && !strcmp(type, "udp")) {
       res->out = &out_udp;
     } else if (type && !strcmp(type, "rtp")) {
       res->out = &out_rtp;
+    }else if (type && !strcmp(type, "rtp_multi")) {
+      res->out = &out_rtp_multi;
     } else if (type && !strcmp(type, "dummy")) {
       res->out = &out_dummy;
     } else if (type && !strcmp(type, "avf")) {
