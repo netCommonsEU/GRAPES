@@ -461,7 +461,7 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
 
     //ctx->fds_len =
     //  rtp_ports_parse(cfg_tags, ports, &(ctx->video_stream_id), &error_str);
-
+    ctx->flow_id=1;
     if (grapes_config_value_int(cfg_tags, "flow_id", &ctx->flow_id)) {
       printf_log(ctx, 1, "Flow id set to %i", ctx->flow_id);
     }

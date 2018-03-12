@@ -43,9 +43,11 @@ static int inet_aton(const char *cp, struct in_addr *addr) {
 struct dechunkiser_ctx {
   int outfd;
   char ip[IP_ADDR_LEN];
-  int ports[RTP_UDP_PORTS_NUM_MAX];
-  int ports_len;
   int verbosity;
+  int *flows; //known flows
+  int flows_number;
+  int base_port; //First port to be opened
+  int *ports; //Opened ports (4 for each flow)
 };
 
 /* Define a printf-like function for logging */
@@ -77,20 +79,19 @@ static void printf_log(const struct dechunkiser_ctx *ctx, int loglevel,
   Returns 0 on success, nonzero on failure.
  */
 static int conf_parse(struct dechunkiser_ctx *ctx, const char *config) {
-  int j;
   int port;
   struct tag *cfg_tags;
 
   // defaults
+  ctx->flows_number=0;
+  ctx->flows=NULL;
+  ctx->ports=NULL;
   ctx->verbosity = 1;
   sprintf(ctx->ip, "127.0.0.1");
-  ctx->ports_len = 0;
-  for (j=0; j<RTP_UDP_PORTS_NUM_MAX; j++) {
-    ctx->ports[j] = -1;
-  }
+
 
   if (!config) {
-    printf_log(ctx, 0, "No output ports specified");
+    printf_log(ctx, 0, "No configuration specified");
     return 1;
   }
 
@@ -107,41 +108,111 @@ static int conf_parse(struct dechunkiser_ctx *ctx, const char *config) {
     }
     printf_log(ctx, 1, "Destination IP address: %s", ctx->ip);
 
-  //  ctx->ports_len =
-  //    rtp_ports_parse(cfg_tags, ctx->ports, NULL, &error_str);
-
     if(grapes_config_value_int(cfg_tags, "base_out", &port))
     {
       if(port < 0){
-        ctx->ports_len =  0;
         printf_log(ctx, 0, "Port cannot be negative!");
+        return 2;
       }
       else{
-        //TODO: dinamically open ports
-        ctx->ports[0] = port;
-        ctx->ports[1] = ctx->ports[0]+1;
-        ctx->ports[2] = ctx->ports[1]+1;
-        ctx->ports[3] = ctx->ports[2]+1;
-        ctx->ports_len= 4;
+        ctx->base_port = port; //Ports are dinamically opened
       }
     }
     else{
         printf_log(ctx, 0, "No output port specified");
-        ctx->ports_len = 0;
+        return 2;
     }
 
-  }
-  free(cfg_tags);
+   }
+   free(cfg_tags);
 
-  if (ctx->ports_len == 0) {
-    return 2;
-  }
-
-  for (j=0; j<ctx->ports_len; j++) {
-    printf_log(ctx, 1, "  Configured output port: %i", ctx->ports[j]);
-  }
+  printf_log(ctx, 1, " Configured base output port: %i", ctx->base_port);
+  printf_log(ctx, 1, " You can receive up to %i different flows", RTP_UDP_PORTS_NUM_MAX/4);
 
   return 0;
+}
+
+
+
+static int open_ports(struct dechunkiser_ctx *ctx,int flow)
+
+/*
+  Function to add a new flow (if there is space) to the flows array,
+  Adding also the ports to ports array
+  Return:
+  -1 -> Problem opening ports or allocating memory
+  >=0 -> Successfully opened ports, the index of the flow in flows array
+*/
+{
+  int res = -1;
+  int i,j;
+  int *new_ports;
+  int *new_flows;
+
+  new_flows=malloc(sizeof(int) * (ctx->flows_number+1));
+  new_ports=malloc(sizeof(int) * ((ctx->flows_number+1) * 4 ));
+
+  if(!new_flows || !new_ports)
+  {
+    free(new_flows);
+    free(new_ports);
+
+    printf_log(ctx, 0, " New flow found! flow_id is %i, but there are been problem allocating memory!", flow);
+    res=-1;
+  }
+  else
+  {
+    if(ctx->flows)
+    {
+      //memcpy(new_flows,ctx->flows,sizeof(int) * ctx->flows_number);
+      //memcpy(new_ports,ctx->ports,sizeof(int) * ctx->flows_number);
+      for(i=0;i<ctx->flows_number;i++)
+        new_flows[i]=ctx->flows[i];
+      for(i=0;i<ctx->flows_number*4;i++)
+        new_ports[i]=ctx->ports[i];
+
+      free(ctx->flows);
+      free(ctx->ports);
+    }
+    ctx->flows=new_flows;
+    ctx->ports=new_ports;
+
+    ctx->flows[ctx->flows_number]=flow;
+    i=ctx->flows_number*4;
+    for(j = 0; j < 4; j++)
+      ctx->ports[i+j] = ctx->base_port + (j+i);
+
+    res=ctx->flows_number;
+    ctx->flows_number+=1;
+
+#ifdef DEBUG
+    printf_log(ctx,1,"[PORT OPENING]: flow %i, assigned index %i\n\t\tOpened ports:",flow,ctx->flows_number);
+    for(j = 0; j < 4; j++)
+      printf_log(ctx,1,"%i, ",ctx->ports[i+j]);
+    printf_log(ctx,1,"\n\t\tKnown flows: ");
+    for(j = 0; j < ctx->flows_number; j++)
+      printf_log(ctx,1,"%i, ",ctx->flows[j]);
+    printf_log(ctx,1,"\n");
+#endif
+
+
+    printf_log(ctx, 1, " New flow found! flow_id is %i and assigned ports are [%i - %i]", flow, ctx->ports[i],ctx->ports[i+3]);
+    }
+
+  return res;
+}
+
+static int is_flow_known(struct dechunkiser_ctx *ctx,int flow)
+/*
+Return the index in flowx array if the flow is already known, -1 if not
+*/
+{
+  int res = -1;
+  int i;
+  for(i = 0; i <ctx->flows_number;i++)
+    if(ctx->flows[i]==flow)
+      return i;
+  return res;
 }
 
 
@@ -185,6 +256,7 @@ static void packet_write(int fd, const char *ip, int port, uint8_t *data, int si
 
 
 static void rtp_multi_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, int size, int flow_id) {
+  int i;
   uint8_t* data_end = data + size;
   printf_log(ctx, 2, "Got chunk of size %i belonging to flow #%i", size, flow_id);
   while (data < data_end) {
@@ -193,9 +265,25 @@ static void rtp_multi_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, 
 
     rtp_payload_per_pkt_header_parse(data, &psize, &stream);
     data += RTP_PAYLOAD_PER_PKT_HEADER_SIZE;
-    if (stream > ctx->ports_len) {
+
+    i = is_flow_known(ctx,flow_id);
+    if(i < 0)
+    {
+      i = open_ports(ctx, flow_id);
+      if(i<0)
+        return;
+    }
+    else{
+      printf_log(ctx, 3, " I already know the flow_id %i!", flow_id);
+    }
+    
+    printf_log(ctx, 3, " The port index was %i, now it's %i",stream, (stream+4*i));
+
+    stream += 4*i;
+
+    if (stream > ctx->flows_number*4) {
       printf_log(ctx, 1, "Received Chunk with bad stream %d > %d",
-                 stream, ctx->ports_len);
+                 stream, ctx->flows_number*4);
       return;
     }
 
@@ -209,6 +297,11 @@ static void rtp_multi_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, 
 
 static void rtp_multi_close(struct dechunkiser_ctx *ctx) {
   close(ctx->outfd);
+  if(ctx->flows)
+    free(ctx->flows);
+  if(ctx->ports)
+    free(ctx->ports);
+
   free(ctx);
 }
 
