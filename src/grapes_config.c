@@ -17,7 +17,7 @@ struct tag {
   char value[VAL_SIZE];
 };
 
-#define MAX_TAGS 16
+#define MAX_TAGS 20
 
 struct tag *grapes_config_parse(const char *cfg)
 {
@@ -31,7 +31,7 @@ struct tag *grapes_config_parse(const char *cfg)
   }
   while (p && *p != 0) {
     char *p1 = strchr(p, '=');
-    
+
     memset(res[i].name, 0, NAME_SIZE);
     memset(res[i].value, 0, VAL_SIZE);
     if (p1) {
