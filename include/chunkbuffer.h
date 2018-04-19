@@ -101,6 +101,23 @@ int cb_clear(struct chunk_buffer *cb);
 void cb_destroy(struct chunk_buffer *cb);
 
 
+
+/**
+ *  Functions to manage the multiflow situations
+ */
+
+/**
+ *  Get the flow_id stored into the chunk buffer
+*/
+int cb_get_flowid(const struct chunk_buffer *cb);
+
+/**
+ *  Set the flow_id stored into the chunk buffer
+*/
+void cb_set_flowid(struct chunk_buffer *cb, int flow_id);
+
+
+
 /*
  * HA Functions
  */

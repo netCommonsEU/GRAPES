@@ -1,6 +1,7 @@
 /*
  *  Copyright (c) 2010 Luca Abeni
  *  Copyright (c) 2010 Csaba Kiraly
+ *  Copyright (c) 2018 Massimo Girondi
  *
  *  This is free software; see lgpl-2.1.txt
  */
@@ -16,6 +17,7 @@
 struct chunk_buffer {
   int size;
   int num_chunks;
+  int flow_id;
   struct chunk *buffer;
 };
 
@@ -111,6 +113,7 @@ struct chunk_buffer *cb_init(const char *config)
     cb->buffer[i].id = -1;
   }
 
+  cb->flow_id=0;
   return cb;
 }
 
@@ -171,4 +174,14 @@ void cb_destroy(struct chunk_buffer *cb)
   cb_clear(cb);
   free(cb->buffer);
   free(cb);
+}
+
+
+int cb_get_flowid(const struct chunk_buffer *cb)
+{
+  return cb->flow_id;
+}
+void cb_set_flowid(struct chunk_buffer *cb, int flow_id)
+{
+  cb->flow_id=flow_id;
 }
