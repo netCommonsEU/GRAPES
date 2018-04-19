@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2010 Luca Abeni
+ *  Copyright (c) 2018 Massimo Girondi
  *
  *  This is free software; see lgpl-2.1.txt
  */
@@ -51,6 +52,10 @@ struct chunkID_set *chunkID_set_init(const char *config)
   } else {
     p->elements = NULL;
   }
+  res = grapes_config_value_int(cfg_tags, "flow_id", &p->flow_id);
+  if (!res) {
+    p->flow_id = 0;
+  }
   p->enc = &prio_encoding;
   p->ops = &list_ops;
   p->type = CIST_PRIORITY;
@@ -68,7 +73,7 @@ struct chunkID_set *chunkID_set_init(const char *config)
       chunkID_set_free(p);
       free(cfg_tags);
 
-      return NULL; 
+      return NULL;
     }
   }
   free(cfg_tags);
@@ -125,4 +130,14 @@ void chunkID_set_trim(struct chunkID_set *h, int size)
     memmove(h->elements, h->elements + h->n_elements - size, sizeof(h->elements[0]) * size);
     h->n_elements = size;
   }
+}
+
+
+int chunkID_set_get_flowid(const struct chunkID_set *h)
+{
+  return h->flow_id;
+}
+void chunkID_set_set_flowid(struct chunkID_set *h, int flowid)
+{
+  h->flow_id=flowid;
 }

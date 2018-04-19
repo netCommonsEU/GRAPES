@@ -23,16 +23,16 @@ static uint8_t *bmap_encode(const struct chunkID_set *h, uint8_t *buff, int buff
   elements = h->n_elements ? c_max - c_min + 1 : 0;
   int_cpy(buff, elements);
   elements = elements / 8 + (elements % 8 ? 1 : 0);
-  if (buff_len < elements + 16 + meta_len) {
+  if (buff_len < elements + 20 + meta_len) {
     return NULL;
   }
-  int_cpy(buff + 12, c_min); //first value in the bitmap, i.e., base value
-  memset(buff + 16, 0, elements);
+  int_cpy(buff + 16, c_min); //first value in the bitmap, i.e., base value
+  memset(buff + 20, 0, elements);
   for (i = 0; i < h->n_elements; i++) {
-    buff[16 + (h->elements[i] - c_min) / 8] |= 1 << ((h->elements[i] - c_min) % 8);
+    buff[20 + (h->elements[i] - c_min) / 8] |= 1 << ((h->elements[i] - c_min) % 8);
   }
 
-  return buff + 16 + elements;
+  return buff + 20 + elements;
 }
 
 static const uint8_t *bmap_decode(struct chunkID_set *h, const uint8_t *buff, int buff_len, int *meta_len)
@@ -42,19 +42,19 @@ static const uint8_t *bmap_decode(struct chunkID_set *h, const uint8_t *buff, in
   int byte_cnt;
 
   byte_cnt = h->size / 8 + (h->size % 8 ? 1 : 0);
-  if (buff_len < 16 + byte_cnt + *meta_len) {
+  if (buff_len < 20 + byte_cnt + *meta_len) {
     fprintf(stderr, "Error in decoding chunkid set - wrong length\n");
     chunkID_set_free(h);
 
     return NULL;
   }
-  base = int_rcpy(buff + 12);
+  base = int_rcpy(buff + 16);
   for (i = h->size - 1; i >= 0; i--) {
-  if (buff[16 + (i / 8)] & 1 << (i % 8))
+  if (buff[20 + (i / 8)] & 1 << (i % 8))
     h->elements[h->n_elements++] = base + i;
   }
 
-  return buff + 16 + byte_cnt;
+  return buff + 20 + byte_cnt;
 }
 
 struct cids_encoding_iface bmap_encoding = {

@@ -11,6 +11,7 @@ struct chunkID_set {
   int *elements;
   struct cids_ops_iface *ops;
   struct cids_encoding_iface *enc;
+  int flow_id;
 };
 
 #endif /* CHUNKID_SET_PRIVATE */

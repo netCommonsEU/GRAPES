@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2010 Luca Abeni
+ *  Copyright (c) 2018 Massimo Girondi
  *
  *  This is free software; see lgpl-2.1.txt
  */
@@ -30,15 +31,16 @@ int encodeChunkSignaling(const struct chunkID_set *h, const void *meta, int meta
 {
   uint8_t *meta_p;
   uint32_t type = h ? h->type : -1;
-  
+
   int_cpy(buff + 4, type);
-  int_cpy(buff + 8, meta_len);
+  int_cpy(buff + 8, h->flow_id);
+  int_cpy(buff + 12, meta_len);
 
   if (h) {
     meta_p = h->enc->encode(h, buff, buff_len, meta_len);
   } else {
     int_cpy(buff, 0);
-    meta_p = buff + 12;
+    meta_p = buff + 16;
   }
   if (meta_p == NULL) {
     return -1;
@@ -55,18 +57,20 @@ struct chunkID_set *decodeChunkSignaling(void **meta, int *meta_len, const uint8
 {
   uint32_t size;
   uint32_t type;
+  uint32_t flow_id;
   struct chunkID_set *h;
   const uint8_t *meta_p;
 
   size = int_rcpy(buff);
   type = int_rcpy(buff + 4);
-  *meta_len = int_rcpy(buff + 8);
+  flow_id = int_rcpy(buff + 8);
+  *meta_len = int_rcpy(buff + 12);
 
   if (type != -1) {
     char cfg[32];
 
     memset(cfg, 0, sizeof(cfg));
-    sprintf(cfg, "size=%d,type=%s", size, type_name(type));
+    sprintf(cfg, "size=%d,type=%s,flow_id=%d", size, type_name(type),flow_id);
     h = chunkID_set_init(cfg);
     if (h == NULL) {
       fprintf(stderr, "Error in decoding chunkid set - not enough memory to create a chunkID set.\n");
@@ -76,7 +80,7 @@ struct chunkID_set *decodeChunkSignaling(void **meta, int *meta_len, const uint8
     meta_p = h->enc->decode(h, buff, buff_len, meta_len);
   } else {
     h = NULL;
-    meta_p = buff + 12;
+    meta_p = buff + 16;
   }
 
   if (*meta_len) {
