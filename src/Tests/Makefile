@@ -65,6 +65,10 @@ chunk_encoding_test: chunk_encoding_test.o
 
 cb_test: cb_test.o
 
+chunkidms_encoding: chunkidms_encoding.o
+chunkidms_signaling: chunkidms_signaling.o net_helpers.o
+chunkidms_signaling: $(NET_HELPER).o
+
 chunkidset_test: chunkidset_test.o chunkid_set_h.o
 
 chunkidset_test_bug: chunkidset_test_bug.o chunkid_set_h.o

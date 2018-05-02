@@ -37,7 +37,7 @@ static struct nodeID *init(void)
     fprintf(stderr, "Error creating my socket (%s:%d)!\n", my_addr, port);
 
     return NULL;
-  }  
+  }
   chunkSignalingInit(myID);
   return myID;
 }
@@ -259,7 +259,7 @@ int server_side(struct nodeID *my_sock)
 
 int main(int argc, char *argv[])
 {
-    struct nodeID *my_sock;    
+    struct nodeID *my_sock;
     int ret;
 
     cmdline_parse(argc, argv);
