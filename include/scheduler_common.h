@@ -18,7 +18,28 @@ typedef struct peer *schedPeerID ;
 /**
   * @brief Chunk identifier used for scheduling
   */
+#ifndef MULTIFLOW
+//Single flow (legacy)
 typedef int schedChunkID ;
+
+
+#pragma message "Scheduler compiling in legacy mode (int identifier for chunk)"
+
+#else
+
+//Multiflow
+
+struct sched_chunkID
+{
+  int chunk_id;
+  int flow_id;
+} ;
+typedef struct sched_chunkID *schedChunkID ;
+
+#pragma message "Scheduler compiling in multiflow mode (with flow identifier for chunk)"
+
+#endif
+
 
 /**
   * @brief The peer-chunk pair, the "atomic unit" of scheduling
