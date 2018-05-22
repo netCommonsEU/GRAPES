@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2010 Luca Abeni
+ *  Copyright (c) 2018 Massimo Girondi
  *
  *  This is free software; see gpl-3.0.txt
  */
@@ -64,7 +65,7 @@ static void dummy_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int si
 {
   switch (o->type) {
     case chunk_id:
-      fprintf(o->f, "Chunk %d: size %d\n", id, size);
+      fprintf(o->f, "Chunk %d of flow %d: size %d\n", id, flow_id, size);
       break;
     case stats:
       if (o->last_id >= 0) {
