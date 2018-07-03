@@ -1,6 +1,7 @@
 /*
  *  Copyright (c) 2010 Csaba Kiraly
  *  Copyright (c) 2014 Davide Kirchner
+ *  Copyright (c) 2018 Luca Baldesi
  *
  *  This is free software; see gpl-3.0.txt
  */
@@ -20,6 +21,7 @@
 #include <limits.h>
 #include <string.h>
 #include <stdarg.h>
+#include <inttypes.h>
 
 #ifdef DEBUG
 #pragma message "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
@@ -74,6 +76,7 @@ struct chunkiser_ctx {
   // fixed context (set at opening time)
   uint64_t start_time;    // TODO:  What is this for?? Is it needed?
                           // (it was there un UDP chunkiser)
+  uint64_t latest_ts;     // latest generated chunk timestamp
   int max_size;           // max `buff` size
   uint64_t max_delay;     // max delay to accumulate in a chunk [ntp format]
   int video_stream_id;    // index in `streams`
@@ -99,6 +102,14 @@ struct rtp_info {
   uint16_t marker;
   uint64_t ntp_ts;
 };
+
+uint64_t gettimeofday_in_microseconds(void)
+{
+  struct timeval what_time; //to store the epoch time
+  
+  gettimeofday(&what_time, NULL);
+  return what_time.tv_sec * 1000000ULL + what_time.tv_usec;
+}
 
 
 /* Define a printf-like function for logging */
@@ -519,6 +530,7 @@ static struct chunkiser_ctx *rtp_open(const char *fname, int *period, const char
 
   gettimeofday(&tv, NULL);
   res->start_time = tv.tv_usec + tv.tv_sec * 1000000ULL;
+  res->latest_ts = gettimeofday_in_microseconds();
 
   res->buff = NULL;
   res->size = 0;
@@ -562,6 +574,8 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
                //  2: do one more round-robin loop now
   int j;
   uint8_t *res;
+  
+  *ts = gettimeofday_in_microseconds();
 
   // Allocate new buffer if needed
   if (ctx->buff == NULL) {
@@ -621,7 +635,12 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
                            ctx->max_delay * 1000.0 / (1ULL << TS_SHIFT));
                 status = ((status > 1) ? status : 1); // status = max(status, 1)
               }
+            } else  {// consider last generated chunk timestamp
+              //fprintf(stderr, "[DEBUG] now %"PRIu64", then %"PRIu64", maxdelay %f\n", *ts, ctx->latest_ts, ctx->max_delay * 1000000.0 / (1ULL << TS_SHIFT));
+              if ((*ts - ctx->latest_ts) >= (ctx->max_delay * 1000000.0 / (1ULL << TS_SHIFT)))
+                status = ((status > 1) ? status : 1); 
             }
+
             // Marker bit semantic for video stream in rfc3551
             if (ctx->rfc3551 && i/2 == ctx->video_stream_id && !info.marker) {
               printf_log(ctx, 2, "  Waiting for another part of this frame!");
@@ -653,12 +672,10 @@ static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint6
     res = NULL;
   }
   else {
-    struct timeval now;
     res = ctx->buff;
     *size = ctx->size;
-    gettimeofday(&now, NULL);
-    *ts = now.tv_sec * 1000000ULL + now.tv_usec;
     ctx->counter++;
+    ctx->latest_ts = *ts;
     ctx->buff = NULL;
     ctx->size = 0;
     printf_log(ctx, 2, "Chunk created: size %i, timestamp %lli", *size, *ts);
