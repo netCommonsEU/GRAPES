@@ -71,7 +71,7 @@ static void dumb_close(struct chunkiser_ctx *s)
   free(s);
 }
 
-static uint8_t *dumb_chunkise(struct chunkiser_ctx *s, chunkid_t id, chunksize_t *size, uint64_t *ts, void **attr, chunksize_t *attr_size, flowid_t *flow_id)
+static uint8_t *dumb_chunkise(struct chunkiser_ctx *s, chunkid_t id, chunksize_t *size, uint64_t *ts, void **attr, chunksize_t *attr_size)
 {
   uint8_t *res;
 

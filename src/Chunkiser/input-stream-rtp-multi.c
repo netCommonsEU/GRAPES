@@ -92,7 +92,6 @@ struct chunkiser_ctx {
   uint64_t min_ntp_ts;    // ntp timestamp of first packet in chunk
   uint64_t max_ntp_ts;    // ntp timestamp of last packet in chunk
   int ntp_ts_status;      // known (1), yet unkwnown (0) or unknown (-1)
-  flowid_t flow_id;            // the id of the stream to be streamed
 };
 
 /* Holds relevant information extracted from each RTP packet */
@@ -459,17 +458,6 @@ static int conf_parse(struct chunkiser_ctx *ctx, const char *config) {
     printf_log(ctx, 2, "Maximum delay set to %.0f ms.",
                ctx->max_delay * 1000.0 / (1ULL << TS_SHIFT));
 
-    //ctx->fds_len =
-    //  rtp_ports_parse(cfg_tags, ports, &(ctx->video_stream_id), &error_str);
-    ctx->flow_id=1;
-    if (grapes_config_value_int(cfg_tags, "flow_id", &ctx->flow_id)) {
-      printf_log(ctx, 1, "Flow id set to %i", ctx->flow_id);
-    }
-    else
-    {
-      printf_log(ctx, 0, "No Flow id specified. It's required for RTP Multiflow chunkiser!");
-      return 1;
-    }
     if (grapes_config_value_int(cfg_tags, "base_in", &ports[0])) {
       ports[1] = ports[0] + 1;
       ports[2] = ports[1] + 1;
@@ -589,16 +577,13 @@ static void rtp_multi_close(struct chunkiser_ctx  *ctx) {
   In case of error, returns NULL and size=-1
  */
 static uint8_t *rtp_multi_chunkise(struct chunkiser_ctx *ctx, chunkid_t id, chunksize_t *size, uint64_t *ts,
-                                      void **attr, chunksize_t *attr_size, flowid_t *flow_id) {
+                                      void **attr, chunksize_t *attr_size) {
   int status;  // -1: buffer full, send now
                //  0: Go on, do not send;
                //  1: send after loop;
                //  2: do one more round-robin loop now
   int j;
   uint8_t *res;
-
-  //set flow_id into chunk
-  *flow_id = ctx->flow_id;
 
   // Allocate new buffer if needed
   if (ctx->buff == NULL) {

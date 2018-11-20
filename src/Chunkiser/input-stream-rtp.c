@@ -567,7 +567,7 @@ static void rtp_close(struct chunkiser_ctx  *ctx) {
   In case of error, returns NULL and size=-1
  */
 static uint8_t *rtp_chunkise(struct chunkiser_ctx *ctx, chunkid_t id, chunksize_t *size, uint64_t *ts,
-                                      void **attr, chunksize_t *attr_size, flowid_t *flow_id) {
+                                      void **attr, chunksize_t *attr_size) {
   int status;  // -1: buffer full, send now
                //  0: Go on, do not send;
                //  1: send after loop;
