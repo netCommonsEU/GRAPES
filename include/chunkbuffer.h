@@ -114,7 +114,7 @@ int cb_get_flowid(const struct chunk_buffer *cb);
 /**
  *  Set the flow_id stored into the chunk buffer
 */
-void cb_set_flowid(struct chunk_buffer *cb, int flow_id);
+void cb_set_flowid(struct chunk_buffer *cb, flowid_t flow_id);
 
 
 
@@ -132,6 +132,6 @@ void cb_set_flowid(struct chunk_buffer *cb, int flow_id);
  * @param id the identifier of the chunk to be returned
  * @return a pointer to the requested chunk
 */
-const struct chunk *cb_get_chunk(const struct chunk_buffer *cb, int id);
+const struct chunk *cb_get_chunk(const struct chunk_buffer *cb, chunkid_t id);
 
 #endif	/* CHUNKBUFFER_H */

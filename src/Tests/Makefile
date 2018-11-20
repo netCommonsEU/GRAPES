@@ -103,10 +103,6 @@ chunkiser_test: LDLIBS += `pkg-config --libs gtk+-2.0`
 chunkiser_test: LDLIBS += `pkg-config --libs alsa`
 endif
 endif
-ifdef PJDIR
-#chunkiser_test: LDLIBS += $(shell export PKG_CONFIG_PATH=$(PJDIR)/lib/pkgconfig; pkg-config --libs libpjproject)
-chunkiser_test: LDLIBS += $(shell cat $(PJDIR)/LDLIBS)
-endif
 
 cloud_test: cloud_test.o net_helpers.o
 cloud_test: $(NET_HELPER).o

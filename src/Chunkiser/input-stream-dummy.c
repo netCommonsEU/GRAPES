@@ -15,7 +15,7 @@
 
 struct chunkiser_ctx {
   char buff[80];
-  int flow_id;
+  flowid_t flow_id;
 };
 
 static struct chunkiser_ctx *open(const char *fname, int *period, const char *config)
@@ -44,7 +44,7 @@ static void close(struct chunkiser_ctx *s)
   free(s);
 }
 
-static uint8_t *chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size, int *flow_id)
+static uint8_t *chunkise(struct chunkiser_ctx *s, chunkid_t id, chunksize_t *size, uint64_t *ts, void **attr, chunksize_t *attr_size, flowid_t *flow_id)
 {
   sprintf(s->buff, "Chunk %d", id);
   *ts = 40 * id * 1000;

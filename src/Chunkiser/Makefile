@@ -29,14 +29,9 @@ OBJS += output-stream-play.o
 endif
 endif
 
-ifeq ($(strip $(PJDIR)),)
 OBJS += rtp_rtcp.o
 OBJS += input-stream-rtp.o
 OBJS += input-stream-rtp-multi.o
-else
-OBJS += input-stream-rtp.o
-OBJS += input-stream-rtp-multi.o
-endif
 
 all: libchunkiser.a
 
@@ -51,12 +46,4 @@ ifdef GTK
 output-stream-play.o: CPPFLAGS += `pkg-config --cflags gtk+-2.0`
 CPPFLAGS += -DGTK
 endif
-endif
-
-ifeq ($(strip $(PJDIR)),)
-CPPFLAGS += -DRTP
-else
-input-stream-rtp.o: CFLAGS += -I$(PJDIR)/include
-input-stream-rtp-multi.o: CFLAGS += -I$(PJDIR)/include
-CPPFLAGS += -DRTP -DPJLIB_RTP
 endif

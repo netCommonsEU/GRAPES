@@ -11,7 +11,7 @@
 #include "chunk.h"
 #include "chunkbuffer.h"
 
-const struct chunk *cb_get_chunk(const struct chunk_buffer *cb, int id)
+const struct chunk *cb_get_chunk(const struct chunk_buffer *cb, chunkid_t id)
 {
   int i, n;
   const struct chunk *buffer;

@@ -18,7 +18,7 @@
 
 #define DEFAULT_SIZE_INCREMENT 32
 
-struct chunkID_singleSet *chunkID_singleSet_init(const int size, const int flow_id)
+struct chunkID_singleSet *chunkID_singleSet_init(const int size, const flowid_t flow_id)
 {
   struct chunkID_singleSet *p;
 
@@ -48,7 +48,7 @@ static int int_cmp(const void *pa, const void *pb)
   return (*(const int *)pa - *(const int *)pb);
 }
 
-static int check_insert_pos(const struct chunkID_singleSet *h, int id)
+static int check_insert_pos(const struct chunkID_singleSet *h, chunkid_t id)
 {
   int a, b, c, r;
 

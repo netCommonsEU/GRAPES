@@ -29,7 +29,7 @@
 
 struct chunkiser_ctx {
   int fds[UDP_PORTS_NUM_MAX + 1];
-  int id;
+  chunkid_t id;
   uint64_t start_time;
   uint8_t *buff;
   int size;
@@ -165,7 +165,7 @@ static void udp_close(struct chunkiser_ctx  *s)
   free(s);
 }
 
-static uint8_t *udp_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size, int *flow_id)
+static uint8_t *udp_chunkise(struct chunkiser_ctx *s, chunkid_t id, chunksize_t *size, uint64_t *ts, void **attr, chunksize_t *attr_size, flowid_t *flow_id)
 {
   int i;
 

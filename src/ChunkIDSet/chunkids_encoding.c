@@ -57,7 +57,7 @@ struct chunkID_set *decodeChunkSignaling(void **meta, int *meta_len, const uint8
 {
   uint32_t size;
   uint32_t type;
-  uint32_t flow_id;
+  flowid_t flow_id;
   struct chunkID_set *h;
   const uint8_t *meta_p;
 

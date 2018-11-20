@@ -7,7 +7,7 @@
 
 #include "chunkidms_private.h"
 
-struct chunkID_singleSet *chunkID_singleSet_init(const int size, const int flow_id);
+struct chunkID_singleSet *chunkID_singleSet_init(const int size, const flowid_t flow_id);
 
 int chunkID_singleSet_add_chunk(struct chunkID_singleSet *h, int chunk_id);
 

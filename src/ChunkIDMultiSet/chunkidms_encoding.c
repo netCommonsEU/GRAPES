@@ -65,7 +65,7 @@ int encodeChunkMSSignaling(const struct chunkID_multiSet *f, const void *meta, i
 struct chunkID_multiSet *decodeChunkMSSignaling(void **meta, int *meta_len, const uint8_t *buff, int buff_len)
 {
   uint32_t n_sets;
-  uint32_t flow_id;
+  flowid_t flow_id;
   uint32_t elements;
   struct chunkID_multiSet *ms;
   const uint8_t *meta_p;

@@ -207,7 +207,7 @@ static struct dechunkiser_ctx *avf_init(const char *fname, const char *config)
   return out;
 }
 
-static void avf_write(struct dechunkiser_ctx *o, int id, uint8_t *data, int size, int flow_id)
+static void avf_write(struct dechunkiser_ctx *o, chunkid_t id, uint8_t *data, chunksize_t size, flowid_t flow_id)
 {
   int header_size;
   int frames, i, media_type;

@@ -17,7 +17,7 @@
 struct chunk_buffer {
   int size;
   int num_chunks;
-  int flow_id;
+  flowid_t flow_id;
   struct chunk *buffer;
 };
 
@@ -46,7 +46,7 @@ static void chunk_free(struct chunk *c)
     c->id = -1;
 }
 
-static int remove_oldest_chunk(struct chunk_buffer *cb, int id, uint64_t ts)
+static int remove_oldest_chunk(struct chunk_buffer *cb, chunkid_t id, uint64_t ts)
 {
   int i, min, pos_min;
 
@@ -181,7 +181,7 @@ int cb_get_flowid(const struct chunk_buffer *cb)
 {
   return cb->flow_id;
 }
-void cb_set_flowid(struct chunk_buffer *cb, int flow_id)
+void cb_set_flowid(struct chunk_buffer *cb, flowid_t flow_id)
 {
   cb->flow_id=flow_id;
 }

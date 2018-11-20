@@ -8,6 +8,7 @@
 #ifndef CHUNKIDSET_H
 #define CHUNKIDSET_H
 #include<stdio.h>
+#include<chunk.h>
 
 /**
  * This struct reppresent a family of set (aka a set of set), it is intended to
@@ -68,7 +69,7 @@ void chunkID_multiSet_free(struct chunkID_multiSet *h);
  * @return > 0 if the chunk ID is correctly inserted in the set, 0 if chunk_id
  *         is already in the set, < 0 on error
  */
-int chunkID_multiSet_add_chunk(struct chunkID_multiSet *h, int chunk_id, int flow_id);
+int chunkID_multiSet_add_chunk(struct chunkID_multiSet *h, int chunk_id, flowid_t flow_id);
 
  /**
   * @brief Get the number of chunkID inside a flow
@@ -80,7 +81,7 @@ int chunkID_multiSet_add_chunk(struct chunkID_multiSet *h, int chunk_id, int flo
   * @return the number of chunkID, -1 in case of error, 0 if empty
   */
 
-int chunkID_multiSet_single_size(struct chunkID_multiSet *h, int flow_id);
+int chunkID_multiSet_single_size(struct chunkID_multiSet *h, flowid_t flow_id);
 
  /**
   * @brief Get the number of set inside (i.e. the number of flows reppresented)
@@ -119,7 +120,7 @@ int chunkID_multiSet_total_size(const struct chunkID_multiSet *h);
  * @return the i^th chunk ID in the set with given flow_id in case of success, or < 0 on error
  *         (in case of error, priority is not meaningful)
  */
-int chunkID_multiSet_get_chunk(struct chunkID_multiSet *h, int i, int flow_id);
+int chunkID_multiSet_get_chunk(struct chunkID_multiSet *h, int i, flowid_t flow_id);
 
 /**
  * @brief Check if a chunk ID is in a multiset
@@ -131,7 +132,7 @@ int chunkID_multiSet_get_chunk(struct chunkID_multiSet *h, int i, int flow_id);
  * @return the priority of the chunk ID if it is present in the multiset,
  *         < 0 on error or if the chunk ID is not in the set
  */
-int chunkID_multiSet_check(struct chunkID_multiSet *h, int chunk_id, int flow_id);
+int chunkID_multiSet_check(struct chunkID_multiSet *h, int chunk_id, flowid_t flow_id);
 
 
  /**
@@ -144,7 +145,7 @@ int chunkID_multiSet_check(struct chunkID_multiSet *h, int chunk_id, int flow_id
   * @param size the expected number of chunk IDs that will be stored
   *                 in the set; 0 if such a number is not known.
   */
-void chunkID_multiSet_clear(struct chunkID_multiSet *h, int size, int flow_id);
+void chunkID_multiSet_clear(struct chunkID_multiSet *h, int size, flowid_t flow_id);
 
 
 /**
@@ -161,7 +162,7 @@ void chunkID_multiSet_clear_all(struct chunkID_multiSet *h, int size);
 
 
 
-void chunkID_multiSet_trim(struct chunkID_multiSet *h, int size, int flow_id);
+void chunkID_multiSet_trim(struct chunkID_multiSet *h, int size, flowid_t flow_id);
 
 void chunkID_multiSet_trimAll(struct chunkID_multiSet *h, int size);
 
@@ -175,7 +176,7 @@ void chunkID_multiSet_trimAll(struct chunkID_multiSet *h, int size);
  * @param flow_id the flow_id of the set
  * @return the chunk ID in case of success, or CHUNKID_INVALID on error
  */
-uint32_t chunkID_multiSet_get_earliest(struct chunkID_multiSet *h, int flow_id);
+uint32_t chunkID_multiSet_get_earliest(struct chunkID_multiSet *h, flowid_t flow_id);
 
 
 /**
@@ -187,7 +188,7 @@ uint32_t chunkID_multiSet_get_earliest(struct chunkID_multiSet *h, int flow_id);
  * @param flow_id the flow_id of the set
  * @return the chunk ID in case of success, or CHUNKID_INVALID on error
  */
-uint32_t chunkID_multiSet_get_latest(struct chunkID_multiSet *h, int flow_id);
+uint32_t chunkID_multiSet_get_latest(struct chunkID_multiSet *h, flowid_t flow_id);
 
 
 
@@ -260,7 +261,7 @@ struct chunkID_multiSet *generateChunkIDMultiSetFromChunkBuffers(struct chunk_bu
   *
   * @param[in] flow_id the flow_id to set to cache
   */
-void chunkID_multiSet_set_cached(struct chunkID_multiSet * ms, int flow_id);
+void chunkID_multiSet_set_cached(struct chunkID_multiSet * ms, flowid_t flow_id);
 
 
 /**

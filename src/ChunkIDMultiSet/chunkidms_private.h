@@ -7,11 +7,13 @@
  *  This is free software; see lgpl-2.1.txt
  */
 
+#include<chunk.h>
+
 struct chunkID_singleSet {
   uint32_t size;
   uint32_t n_elements;
   int *elements;
-  int flow_id;
+  flowid_t flow_id;
 };
 
 

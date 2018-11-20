@@ -255,7 +255,7 @@ static void packet_write(int fd, const char *ip, int port, uint8_t *data, int si
 }
 
 
-static void rtp_multi_write(struct dechunkiser_ctx *ctx, int id, uint8_t *data, int size, int flow_id) {
+static void rtp_multi_write(struct dechunkiser_ctx *ctx, chunkid_t id, uint8_t *data, chunksize_t size, flowid_t flow_id) {
   int i;
   uint8_t* data_end = data + size;
   printf_log(ctx, 2, "Got chunk of size %i belonging to flow #%i", size, flow_id);

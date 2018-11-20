@@ -12,7 +12,7 @@
 #include "chunk.h"
 #include "chunkbuffer.h"
 
-static struct chunk *chunk_forge(int id)
+static struct chunk *chunk_forge(chunkid_t id)
 {
   struct chunk *c;
   char buff[64];
@@ -32,7 +32,7 @@ static struct chunk *chunk_forge(int id)
   return c;
 }
 
-static void chunk_add(struct chunk_buffer *cb, int id)
+static void chunk_add(struct chunk_buffer *cb, chunkid_t id)
 {
   struct chunk *c;
   int res;

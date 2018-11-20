@@ -45,7 +45,7 @@ struct chunkiser_ctx {
   struct log_info chunk_log;
 };
 
-static void chunk_print(FILE *log, int id, int *frames, int type)
+static void chunk_print(FILE *log, chunkid_t id, int *frames, int type)
 {
   int i = 0;
 
@@ -308,7 +308,7 @@ static void ipb_close(struct chunkiser_ctx *s)
   free(s);
 }
 
-static uint8_t *ipb_chunkise(struct chunkiser_ctx *s, int id, int *size, uint64_t *ts, void **attr, int *attr_size, int *flow_id)
+static uint8_t *ipb_chunkise(struct chunkiser_ctx *s, chunkid_t id, chunksize_t *size, uint64_t *ts, void **attr, chunksize_t *attr_size, flowid_t *flow_id)
 {
   AVPacket pkt;
   AVRational new_tb;

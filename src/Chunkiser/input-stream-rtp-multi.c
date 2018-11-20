@@ -92,7 +92,7 @@ struct chunkiser_ctx {
   uint64_t min_ntp_ts;    // ntp timestamp of first packet in chunk
   uint64_t max_ntp_ts;    // ntp timestamp of last packet in chunk
   int ntp_ts_status;      // known (1), yet unkwnown (0) or unknown (-1)
-  int flow_id;            // the id of the stream to be streamed
+  flowid_t flow_id;            // the id of the stream to be streamed
 };
 
 /* Holds relevant information extracted from each RTP packet */
@@ -588,8 +588,8 @@ static void rtp_multi_close(struct chunkiser_ctx  *ctx) {
 
   In case of error, returns NULL and size=-1
  */
-static uint8_t *rtp_multi_chunkise(struct chunkiser_ctx *ctx, int id, int *size, uint64_t *ts,
-                                      void **attr, int *attr_size, int *flow_id) {
+static uint8_t *rtp_multi_chunkise(struct chunkiser_ctx *ctx, chunkid_t id, chunksize_t *size, uint64_t *ts,
+                                      void **attr, chunksize_t *attr_size, flowid_t *flow_id) {
   int status;  // -1: buffer full, send now
                //  0: Go on, do not send;
                //  1: send after loop;

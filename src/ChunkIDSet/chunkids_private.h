@@ -1,6 +1,8 @@
 #ifndef CHUNKID_SET_PRIVATE
 #define CHUNKID_SET_PRIVATE
 
+#include<chunk.h>
+
 #define CIST_BITMAP 1
 #define CIST_PRIORITY 2
 
@@ -11,7 +13,7 @@ struct chunkID_set {
   int *elements;
   struct cids_ops_iface *ops;
   struct cids_encoding_iface *enc;
-  int flow_id;
+  flowid_t flow_id;
 };
 
 #endif /* CHUNKID_SET_PRIVATE */

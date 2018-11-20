@@ -1,6 +1,8 @@
 #ifndef CHUNK_H
 #define CHUNK_H
 
+#include<stdint.h>
+
 /**
  * @file chunk.h
  *
@@ -9,6 +11,11 @@
  * Describes the structure of the chunk.
  *
  */
+
+typedef uint32_t flowid_t;
+typedef int32_t chunkid_t;
+typedef int32_t chunksize_t;
+
 
 /**
  * Structure describing a chunk. This is part of the
@@ -19,11 +26,11 @@ typedef struct chunk {
     * Chunk ID. Should be unique in a stream, and is generally
     * an integer used as a sequence number.
     */
-   int id;
+   chunkid_t id;
    /**
     * Size of the data, in byte.
     */
-   int size;
+   chunksize_t size;
    /**
     * Pointer to a buffer containing the chunk payload.
     */
@@ -44,11 +51,11 @@ typedef struct chunk {
    /**
     * Size of the attributes, in byte.
     */
-   int attributes_size;
+   chunksize_t attributes_size;
    /**
     * ID of the flow which the chunk belongs to (alias color)
     * Default is 1
    */
-   int flow_id;
+   flowid_t flow_id;
 } Chunk;
 #endif

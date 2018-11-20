@@ -19,6 +19,7 @@
 #ifndef CHUNKIDSET_H
 #define CHUNKIDSET_H
 
+#include<chunk.h>
 /**
 * Opaque data type representing a Chunk ID Set
 */
@@ -145,13 +146,13 @@ void chunkID_set_trim(struct chunkID_set *h, int size);
 /**
  * Get flow_id of ChunkID_set
  **/
-int chunkID_set_get_flowid(const struct chunkID_set *h);
+flowid_t chunkID_set_get_flowid(const struct chunkID_set *h);
 
 
 /**
  * Set flow_id of ChunkID_set
  **/
-void chunkID_set_set_flowid(struct chunkID_set *h, int flowid);
+void chunkID_set_set_flowid(struct chunkID_set *h, flowid_t flowid);
 
 
 

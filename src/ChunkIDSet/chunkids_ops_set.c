@@ -14,7 +14,7 @@ static int int_cmp(const void *pa, const void *pb)
   return (*(const int *)pa - *(const int *)pb);
 }
 
-static int check_insert_pos(const struct chunkID_set *h, int id)
+static int check_insert_pos(const struct chunkID_set *h, chunkid_t id)
 {
   int a, b, c, r;
 

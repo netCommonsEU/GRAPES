@@ -24,72 +24,68 @@ struct output_stream {
 struct output_stream *out_stream_init(const char *fname, const char *config)
 {
   struct tag *cfg_tags;
-  struct output_stream *res;
+  struct output_stream *res = NULL;
 
-  res = malloc(sizeof(struct output_stream));
-  if (res == NULL) {
-    return NULL;
-  }
 
-#ifdef AVF
-  res->out = &out_avf;
-#else
-  res->out = &out_raw;
-#endif
   cfg_tags = grapes_config_parse(config);
   if (cfg_tags) {
     const char *type;
 
     type = grapes_config_value_str(cfg_tags, "dechunkiser");
     if(type)
-      fprintf(stdout, "Choosen dechunkiser: %s\n", type);
+	{
+		res = malloc(sizeof(struct output_stream));
+		res->out = &out_dummy;
+		fprintf(stdout, "Choosen dechunkiser: %s\n", type);
 
-    if (type && !strcmp(type, "raw")) {
-      res->out = &out_raw;
-    } else if (type && !strcmp(type, "udp")) {
-      res->out = &out_udp;
-    } else if (type && !strcmp(type, "rtp")) {
-      res->out = &out_rtp;
-    }else if (type && !strcmp(type, "rtp_multi")) {
-      res->out = &out_rtp_multi;
-    } else if (type && !strcmp(type, "dummy")) {
-      res->out = &out_dummy;
-    } else if (type && !strcmp(type, "avf")) {
-#ifdef AVF
-      res->out = &out_avf;
-#else
-      free(res);
-      free(cfg_tags);
+		if (type && !strcmp(type, "raw")) {
+		  res->out = &out_raw;
+		} else if (type && !strcmp(type, "udp")) {
+		  res->out = &out_udp;
+		} else if (type && !strcmp(type, "rtp")) {
+		  res->out = &out_rtp;
+		}else if (type && !strcmp(type, "rtp_multi")) {
+		  res->out = &out_rtp_multi;
+		} else if (type && !strcmp(type, "dummy")) {
+		  res->out = &out_dummy;
+		} else if (type && !strcmp(type, "avf")) {
+	#ifdef AVF
+		  res->out = &out_avf;
+	#else
+		  free(res);
+		  free(cfg_tags);
 
-      return NULL;
-#endif
-    } else if (type && !strcmp(type, "play")) {
-#ifdef GTK
-      res->out = &out_play;
-#else
-      free(res);
-      free(cfg_tags);
+		  return NULL;
+	#endif
+		} else if (type && !strcmp(type, "play")) {
+	#ifdef GTK
+		  res->out = &out_play;
+	#else
+		  free(res);
+		  free(cfg_tags);
 
-      return NULL;
-#endif
-    }
+		  return NULL;
+	#endif
+		}
+		res->c = res->out->open(fname, config);
+		if (res->c == NULL) {
+		  free(res);
+		  res = NULL;
+		}
+	}
   }
   free(cfg_tags);
-
-  res->c = res->out->open(fname, config);
-  if (res->c == NULL) {
-    free(res);
-
-    return NULL;
-  }
 
   return res;
 }
 
 void out_stream_close(struct output_stream *s)
 {
-  s->out->close(s->c);
-  free(s);
+  if (s)
+  {
+	  s->out->close(s->c);
+	  free(s);
+  }
 }
 
 void chunk_write(struct output_stream *o, const struct chunk *c)

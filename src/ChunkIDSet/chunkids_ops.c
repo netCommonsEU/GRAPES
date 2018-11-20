@@ -133,11 +133,11 @@ void chunkID_set_trim(struct chunkID_set *h, int size)
 }
 
 
-int chunkID_set_get_flowid(const struct chunkID_set *h)
+flowid_t chunkID_set_get_flowid(const struct chunkID_set *h)
 {
   return h->flow_id;
 }
-void chunkID_set_set_flowid(struct chunkID_set *h, int flowid)
+void chunkID_set_set_flowid(struct chunkID_set *h, flowid_t flowid)
 {
   h->flow_id=flowid;
 }

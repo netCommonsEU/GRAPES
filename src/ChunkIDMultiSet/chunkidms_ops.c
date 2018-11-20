@@ -67,7 +67,7 @@ void chunkID_multiSet_free(struct chunkID_multiSet *h)
 }
 
 
-static struct chunkID_singleSet * getSet(struct chunkID_multiSet *h, int flow_id)
+static struct chunkID_singleSet * getSet(struct chunkID_multiSet *h, flowid_t flow_id)
 {
 
   int i;
@@ -104,7 +104,7 @@ static struct chunkID_singleSet * getSet(struct chunkID_multiSet *h, int flow_id
 
 }
 
-int chunkID_multiSet_add_chunk(struct chunkID_multiSet *h, int chunk_id, int flow_id)
+int chunkID_multiSet_add_chunk(struct chunkID_multiSet *h, int chunk_id, flowid_t flow_id)
 {
   struct chunkID_singleSet *res=getSet(h, flow_id);
   if(res)
@@ -114,7 +114,7 @@ int chunkID_multiSet_add_chunk(struct chunkID_multiSet *h, int chunk_id, int flo
 }
 
 
-int chunkID_multiSet_single_size(struct chunkID_multiSet *h, int flow_id)
+int chunkID_multiSet_single_size(struct chunkID_multiSet *h, flowid_t flow_id)
 {
   struct chunkID_singleSet *res=getSet(h, flow_id);
   if(res)
@@ -147,7 +147,7 @@ int chunkID_multiSet_total_size(const struct chunkID_multiSet *h)
 
 
 
-int chunkID_multiSet_get_chunk(struct chunkID_multiSet *h, int i, int flow_id)
+int chunkID_multiSet_get_chunk(struct chunkID_multiSet *h, int i, flowid_t flow_id)
 {
   struct chunkID_singleSet *res=getSet(h, flow_id);
   if (res && i < res->n_elements) {
@@ -158,7 +158,7 @@ int chunkID_multiSet_get_chunk(struct chunkID_multiSet *h, int i, int flow_id)
 }
 
 
-int chunkID_multiSet_check(struct chunkID_multiSet *h, int chunk_id, int flow_id)
+int chunkID_multiSet_check(struct chunkID_multiSet *h, int chunk_id, flowid_t flow_id)
 {
   struct chunkID_singleSet *res=getSet(h, flow_id);
   if (res) {
@@ -169,7 +169,7 @@ int chunkID_multiSet_check(struct chunkID_multiSet *h, int chunk_id, int flow_id
 
 
 }
-void chunkID_multiSet_clear(struct chunkID_multiSet *h, int size, int flow_id)
+void chunkID_multiSet_clear(struct chunkID_multiSet *h, int size, flowid_t flow_id)
 {
 
   struct chunkID_singleSet *res=getSet(h, flow_id);
@@ -196,7 +196,7 @@ void chunkID_multiSet_clear_all(struct chunkID_multiSet *h, int size)
 }
 
 
-void chunkID_multiSet_trim(struct chunkID_multiSet *h, int size, int flow_id)
+void chunkID_multiSet_trim(struct chunkID_multiSet *h, int size, flowid_t flow_id)
 {
 
   struct chunkID_singleSet *res=getSet(h, flow_id);
@@ -213,7 +213,7 @@ void chunkID_multiSet_trimAll(struct chunkID_multiSet *h, int size)
 }
 
 
-uint32_t chunkID_multiSet_get_earliest(struct chunkID_multiSet *h, int flow_id)
+uint32_t chunkID_multiSet_get_earliest(struct chunkID_multiSet *h, flowid_t flow_id)
 {
   struct chunkID_singleSet *res=getSet(h, flow_id);
 
@@ -228,7 +228,7 @@ uint32_t chunkID_multiSet_get_earliest(struct chunkID_multiSet *h, int flow_id)
 
 }
 
-uint32_t chunkID_multiSet_get_latest(struct chunkID_multiSet *h, int flow_id)
+uint32_t chunkID_multiSet_get_latest(struct chunkID_multiSet *h, flowid_t flow_id)
 {
 
     struct chunkID_singleSet *res=getSet(h, flow_id);
@@ -331,7 +331,7 @@ void chunkID_multiSet_print(FILE * stream, const struct chunkID_multiSet * ms)
 }
 
 
-void chunkID_multiSet_set_cached(struct chunkID_multiSet * ms, int flow_id)
+void chunkID_multiSet_set_cached(struct chunkID_multiSet * ms, flowid_t flow_id)
 {
   getSet(ms, flow_id);
 }
