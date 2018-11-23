@@ -42,7 +42,8 @@ struct chunkID_multiSet *chunkID_multiSet_init(int size, int single_size)
     p->sets = malloc(p->max_size * sizeof( struct chunkID_singleSet *));
     if (p->sets == NULL) {
       p->max_size = 0;
-    }
+    } else 
+		memset(p->sets, 0, p->max_size * sizeof( struct chunkID_singleSet *));
   } else {
     p->sets = NULL;
   }
@@ -386,18 +387,20 @@ int chunkID_multiSet_iterator_next(struct chunkID_multiSet_iterator * iter, chun
 	uint32_t i;
 	const struct chunkID_singleSet * set;
 
-	if(iter && cid && fid)
+	if(iter && cid && fid && (iter->ms)->sets)
 	{
 		set = (iter->ms)->sets[iter->flow_iter];
 		res = 0;
 		i = iter->flow_iter;
-		while (iter->chunk_iter >= set->n_elements && res==0)
+		while ((!set || iter->chunk_iter >= set->n_elements) && res==0)
 		{
 			iter->flow_iter++;
-			iter->flow_iter %= iter->ms->size;
-			set = (iter->ms)->sets[iter->flow_iter];
-			if (iter->flow_iter == 0)
+			if (iter->flow_iter >= iter->ms->size)
+			{
+				iter->flow_iter = 0;
 				iter->chunk_iter++;
+			}
+			set = (iter->ms)->sets[iter->flow_iter];
 			if (iter->flow_iter == i)
 				res = -2;
 		}
