@@ -367,49 +367,52 @@ int * chunkID_multiSet_get_flows(struct chunkID_multiSet *ms, int * size)
 }
 
 
+struct chunkID_multiSet_iterator *chunkID_multiSet_iterator_create(const struct chunkID_multiSet * ms)
+{
+	struct chunkID_multiSet_iterator * iter = NULL;
+	if (ms)
+	{
+		iter = malloc(sizeof(struct chunkID_multiSet_iterator));
+		iter->ms = ms;
+		iter->flow_iter = 0;
+		iter->chunk_iter = 0;
+	}
+	return iter;
+}
 
+int chunkID_multiSet_iterator_next(struct chunkID_multiSet_iterator * iter, chunkid_t *cid, flowid_t *fid)
+{
+	int res = -1;
+	uint32_t i;
+	const struct chunkID_singleSet * set;
 
-//
-// void singleset_encoding_test()
-// {
-//   struct chunkID_singleSet *s= chunkID_singleSet_init(10,17);
-//   struct chunkID_singleSet *s1=NULL;
-//   static uint8_t buff[2048];
-//
-//   uint8_t *meta;
-//   uint8_t *meta2;
-//   int i,a=0,size;
-//   if(!s)
-//   {
-//     printf("Error creating set!!!\n");
-//     return;
-//   }
-//   for(i=0; i<10; i++)
-//     chunkID_singleSet_add_chunk(s,50+i);
-//
-//   for(i=0; i<s->n_elements; i++)
-//     printf("%d ", s->elements[i]);
-//
-//   printf("\n");
-//
-//   meta=chunkID_singleSet_encode(s, buff, sizeof(buff),0);
-//   printf("Encoding: %ld bytes\n", 1+meta-buff);
-//   for(i=0; i<meta-buff; i++)
-//     printf("%hhx ",buff[i]);
-//   printf("\n");
-//   size = int_rcpy(buff);
-//   s1 = chunkID_singleSet_init(size, 17);
-//
-//   meta2=chunkID_singleSet_decode(s1,buff,meta-buff, &a);
-//   printf("Decoding: %ld bytes\n", 1+meta-buff);
-//   printf("Size: %d\n", s1->n_elements);
-//   printf("Flow_id: %d\n", s1->flow_id);
-//   printf("Meta is after %ld bytes from start\n", meta2-buff);
-//
-//   for(i=0; i<s1->n_elements; i++)
-//     printf("%d ", s1->elements[i]);
-//
-//   printf("\n");
-//
-//
-// }
+	if(iter && cid && fid)
+	{
+		set = (iter->ms)->sets[iter->flow_iter];
+		res = 0;
+		i = iter->flow_iter;
+		while (iter->chunk_iter >= set->n_elements && res==0)
+		{
+			iter->flow_iter++;
+			iter->flow_iter %= iter->ms->size;
+			set = (iter->ms)->sets[iter->flow_iter];
+			if (iter->flow_iter == 0)
+				iter->chunk_iter++;
+			if (iter->flow_iter == i)
+				res = -2;
+		}
+		if (res == 0)
+		{
+			*fid = set->flow_id;
+			*cid = set->elements[set->n_elements -1 -iter->chunk_iter];  // pick in reverse order
+
+			iter->flow_iter++;
+			if (iter->flow_iter > iter->ms->size)
+			{
+				iter->flow_iter = 0;
+				iter->chunk_iter++;
+			}
+		}
+	}
+	return res;
+}

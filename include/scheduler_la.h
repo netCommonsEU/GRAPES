@@ -28,7 +28,7 @@ typedef enum {SCHED_BEST,SCHED_WEIGHTED} SchedOrdering;
   * @brief Prototype for filter functions that select useful peer-chunk combinations
   * @return true if the combination is valid, false otherwise
   */
-typedef int (*filterFunction)(schedPeerID ,schedChunkID );
+typedef int (*filterFunction)(schedPeerID ,schedChunkID* );
 
 /**
   * @brief Prototype for function assigning a weigth to a peer

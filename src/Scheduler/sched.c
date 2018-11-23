@@ -158,7 +158,7 @@ void filterPeers2(schedPeerID *peers, size_t peers_len, schedChunkID *chunks, si
   int f=0;
   for (p=0; p<peers_len; p++){
     for (c=0; c<chunks_len; c++){
-      if (!filter || filter(peers[p],chunks[c])) {
+      if (!filter || filter(peers[p],&(chunks[c]))) {
         filteredpeers[f++]=peers[p];
         break;
       }
@@ -178,7 +178,7 @@ void filterChunks2(schedPeerID *peers, size_t peers_len, schedChunkID *chunks, s
   int f=0;
   for (c=0; c<chunks_len; c++){
     for (p=0; p<peers_len; p++){
-      if (!filter || filter(peers[p],chunks[c])) {
+      if (!filter || filter(peers[p],&(chunks[c]))) {
         filtered[f++]=chunks[c];
         break;
       }
@@ -196,7 +196,7 @@ void filterPairs(struct PeerChunk *pairs, size_t *pairs_len,
   int pc;
   int f=0;
   for (pc=0; pc<(*pairs_len); pc++){
-    if (!filter || filter(pairs[pc].peer,pairs[pc].chunk)) {
+    if (!filter || filter(pairs[pc].peer,&(pairs[pc].chunk))) {
       pairs[f++]=pairs[pc];
     }
   }

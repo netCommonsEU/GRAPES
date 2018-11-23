@@ -26,8 +26,9 @@ struct sched_chunkID
 {
   int chunk_id;
   flowid_t flow_id;
-} ;
-typedef struct sched_chunkID *schedChunkID ;
+  uint64_t timestamp;
+};
+typedef struct sched_chunkID schedChunkID;
 
 
 /**

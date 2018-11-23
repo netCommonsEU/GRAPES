@@ -9,6 +9,7 @@
 #define CHUNKIDSET_H
 #include<stdio.h>
 #include<chunk.h>
+#include<chunkbuffer.h>
 
 /**
  * This struct reppresent a family of set (aka a set of set), it is intended to
@@ -26,8 +27,6 @@
 * Opaque data type representing a ChunkID Multiset
 */
 typedef struct chunkID_multiSet ChunkIDMultiSet;
-struct chunk_buffer;
-struct chunk;
 
 
 #define CHUNKID_INVALID (uint32_t)-1	/**< Trying to get a chunk ID from an empty set */
@@ -302,8 +301,8 @@ int * chunkID_multiSet_get_flows(struct chunkID_multiSet *ms, int * size);
 
 void chunkID_multiSet_print(FILE * stream, const struct chunkID_multiSet * ms);
 
-//Just a test function to see if everything works well
-// void singleset_encoding_test();
+struct chunkID_multiSet_iterator *chunkID_multiSet_iterator_create(const struct chunkID_multiSet * ms);
 
+int chunkID_multiSet_iterator_next(struct chunkID_multiSet_iterator * iter, chunkid_t *cdi, flowid_t *fid);
 
 #endif

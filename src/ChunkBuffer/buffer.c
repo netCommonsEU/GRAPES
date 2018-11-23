@@ -177,7 +177,7 @@ void cb_destroy(struct chunk_buffer *cb)
 }
 
 
-int cb_get_flowid(const struct chunk_buffer *cb)
+flowid_t cb_get_flowid(const struct chunk_buffer *cb)
 {
   return cb->flow_id;
 }

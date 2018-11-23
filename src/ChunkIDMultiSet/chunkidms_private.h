@@ -26,7 +26,11 @@ struct chunkID_multiSet {
 
 };
 
-
+struct chunkID_multiSet_iterator {
+  const struct chunkID_multiSet * ms;
+  uint32_t flow_iter;
+  uint32_t chunk_iter;
+};
 
 
 #endif /* CHUNKID_MUlTISET_PRIVATE */
