@@ -410,7 +410,7 @@ int chunkID_multiSet_iterator_next(struct chunkID_multiSet_iterator * iter, chun
 			*cid = set->elements[set->n_elements -1 -iter->chunk_iter];  // pick in reverse order
 
 			iter->flow_iter++;
-			if (iter->flow_iter > iter->ms->size)
+			if (iter->flow_iter >= iter->ms->size)
 			{
 				iter->flow_iter = 0;
 				iter->chunk_iter++;
